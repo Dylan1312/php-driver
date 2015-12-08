@@ -475,7 +475,7 @@ php_cassandra_bigint_new(zend_class_entry* class_type TSRMLS_DC)
   self = (cassandra_bigint*) emalloc(sizeof(cassandra_bigint));
   memset(self, 0, sizeof(cassandra_bigint));
 
-  self->type = CASSANDRA_BIGINT;
+  self->type = CASS_VALUE_TYPE_BIGINT;
 
   zend_object_std_init(&self->zval, class_type TSRMLS_CC);
   object_properties_init(&self->zval, class_type);

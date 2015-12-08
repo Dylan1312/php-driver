@@ -166,6 +166,8 @@ php_cassandra_uuid_new(zend_class_entry* class_type TSRMLS_DC)
   uuid = (cassandra_uuid*) emalloc(sizeof(cassandra_uuid));
   memset(uuid, 0, sizeof(cassandra_uuid));
 
+  uuid->type = CASS_VALUE_TYPE_UUID;
+
   zend_object_std_init(&uuid->zval, class_type TSRMLS_CC);
   object_properties_init(&uuid->zval, class_type);
 

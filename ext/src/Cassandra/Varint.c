@@ -442,7 +442,7 @@ php_cassandra_varint_new(zend_class_entry* class_type TSRMLS_DC)
   self = (cassandra_varint*) emalloc(sizeof(cassandra_varint));
   memset(self, 0, sizeof(cassandra_varint));
 
-  self->type = CASSANDRA_VARINT;
+  self->type = CASS_VALUE_TYPE_VARINT;
 
   mpz_init(self->value);
   zend_object_std_init(&self->zval, class_type TSRMLS_CC);
