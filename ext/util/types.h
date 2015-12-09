@@ -19,6 +19,10 @@
   XX(timeuuid, CASS_VALUE_TYPE_TIMEUUID) \
   XX(inet, CASS_VALUE_TYPE_INET)
 
+zval* php_cassandara_type_from_data_type(const CassDataType* data_type TSRMLS_DC);
+int php_cassandra_type_equals(cassandra_type* type1, cassandra_type* type2 TSRMLS_DC);
+const char* php_cassandra_type_string(cassandra_type* type TSRMLS_DC);
+
 zval* php_cassandra_type_scalar(CassValueType type TSRMLS_DC);
 const char* php_cassandra_scalar_type_name(CassValueType type TSRMLS_DC);
 zval* php_cassandra_type_set(CassValueType type TSRMLS_DC);

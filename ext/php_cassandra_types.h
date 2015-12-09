@@ -15,22 +15,12 @@
 
 #define VALUE_FIELDS  \
   zend_object zval;   \
-  CassValueType type;
+  CassValueType type; \
+  zval* ztype;
 
 typedef struct {
   VALUE_FIELDS
 } cassandra_value;
-
-typedef struct {
-  zval* key;
-  zval* value;
-  UT_hash_handle hh;
-} cassandra_map_entry;
-
-typedef struct {
-  zval* value;
-  UT_hash_handle hh;
-} cassandra_set_entry;
 
 typedef struct {
   VALUE_FIELDS
@@ -105,6 +95,11 @@ typedef struct {
 } cassandra_inet;
 
 typedef struct {
+  zval* element;
+  UT_hash_handle hh;
+} cassandra_set_entry;
+
+typedef struct {
   VALUE_FIELDS
   CassValueType value_type;
   cassandra_set_entry* entries;
@@ -115,14 +110,18 @@ typedef struct {
 } cassandra_set;
 
 typedef struct {
+  zval* key;
+  zval* value;
+  UT_hash_handle hh;
+} cassandra_map_entry;
+
+typedef struct {
   VALUE_FIELDS
   cassandra_map_entry* entries;
   unsigned hashv;
   int dirty;
   cassandra_map_entry* iter_curr;
   cassandra_map_entry* iter_temp;
-  CassValueType key_type;
-  CassValueType value_type;
 } cassandra_map;
 
 typedef struct {
@@ -130,6 +129,8 @@ typedef struct {
   CassValueType value_type;
   HashTable values;
 } cassandra_collection;
+
+#undef VALUE_FIELDS
 
 typedef struct {
   zend_object zval;
@@ -350,31 +351,41 @@ typedef struct {
   cassandra_column_meta* meta;
 } cassandra_column;
 
+#define TYPE_FIELDS   \
+  zend_object zval;   \
+  CassValueType type;
+
+typedef struct {
+  TYPE_FIELDS
+} cassandra_type;
+
 typedef struct {
   zend_object zval;
   CassValueType type;
 } cassandra_type_scalar;
 
 typedef struct {
-  zend_object zval;
-  CassValueType type;
+  TYPE_FIELDS
+  zval* element_type;
 } cassandra_type_collection;
 
 typedef struct {
-  zend_object zval;
-  CassValueType type;
+  TYPE_FIELDS
+  zval* element_type;
 } cassandra_type_set;
 
 typedef struct {
-  zend_object zval;
-  CassValueType key_type;
-  CassValueType value_type;
+  TYPE_FIELDS
+  zval* key_type;
+  zval* value_type;
 } cassandra_type_map;
 
 typedef struct {
-  zend_object zval;
-  char*       name;
+  TYPE_FIELDS
+  char* name;
 } cassandra_type_custom;
+
+#undef TYPE_FIELDS
 
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_value_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_numeric_ce;
@@ -388,6 +399,12 @@ extern PHP_CASSANDRA_API zend_class_entry* cassandra_uuid_interface_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_uuid_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_timeuuid_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_varint_ce;
+
+// TODO(mpenick): Create types
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_int_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_double_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_string_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_boolean_ce;
 
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_set_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_map_ce;

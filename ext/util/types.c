@@ -13,6 +13,21 @@
 
 ZEND_EXTERN_MODULE_GLOBALS(cassandra)
 
+zval*
+php_cassandara_type_from_data_type(const CassDataType* data_type TSRMLS_DC) {
+  return NULL;
+}
+
+int
+php_cassandra_type_equals(cassandra_type* type1, cassandra_type* type2 TSRMLS_DC) {
+  return 0;
+}
+
+const char*
+php_cassandra_type_to_string(cassandra_type* type TSRMLS_DC) {
+  return NULL;
+}
+
 static zval*
 php_cassandra_type_scalar_new(CassValueType type TSRMLS_DC)
 {
@@ -159,8 +174,8 @@ php_cassandra_type_map(CassValueType key_type,
   MAKE_STD_ZVAL(ztype);
   object_init_ex(ztype, cassandra_type_map_ce);
   map = (cassandra_type_map*) zend_object_store_get_object(ztype TSRMLS_CC);
-  map->key_type   = key_type;
-  map->value_type = value_type;
+  map->key_type   = php_cassandra_type_scalar(key_type TSRMLS_CC);
+  map->value_type = php_cassandra_type_scalar(value_type TSRMLS_CC);
 
   return ztype;
 }
@@ -174,7 +189,7 @@ php_cassandra_type_set(CassValueType type TSRMLS_DC)
   MAKE_STD_ZVAL(ztype);
   object_init_ex(ztype, cassandra_type_set_ce);
   set = (cassandra_type_set*) zend_object_store_get_object(ztype TSRMLS_CC);
-  set->type = type;
+  set->element_type = php_cassandra_type_scalar(type TSRMLS_CC);
 
   return ztype;
 }
@@ -188,7 +203,7 @@ php_cassandra_type_collection(CassValueType type TSRMLS_DC)
   MAKE_STD_ZVAL(ztype);
   object_init_ex(ztype, cassandra_type_collection_ce);
   collection = (cassandra_type_collection*) zend_object_store_get_object(ztype TSRMLS_CC);
-  collection->type = type;
+  collection->element_type = php_cassandra_type_scalar(type TSRMLS_CC);
 
   return ztype;
 }

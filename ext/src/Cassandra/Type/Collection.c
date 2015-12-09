@@ -66,11 +66,13 @@ PHP_METHOD(TypeCollection, create)
 
   object_init_ex(return_value, cassandra_collection_ce);
   collection = (cassandra_collection*) zend_object_store_get_object(return_value TSRMLS_CC);
-  collection->type = self->type;
+
+  collection->ztype = getThis();
+  Z_ADDREF_P(collection->ztype);
 
   if (argc > 0) {
     for (i = 0; i < argc; i++) {
-      if (!php_cassandra_validate_object(*args[i], collection->type TSRMLS_CC)) {
+      if (!php_cassandra_validate_object(*args[i], self->element_type, NULL TSRMLS_CC)) {
         efree(args);
         return;
       }

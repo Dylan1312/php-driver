@@ -8,6 +8,9 @@ int
 php_cassandra_map_set(cassandra_map* map, zval* zkey, zval* zvalue TSRMLS_DC)
 {
   cassandra_map_entry* entry;
+  cassandra_type_map* type;
+  zval* key;
+  zval* value;
   int result = 0;
 
   if (Z_TYPE_P(zkey) == IS_NULL) {
@@ -22,29 +25,31 @@ php_cassandra_map_set(cassandra_map* map, zval* zkey, zval* zvalue TSRMLS_DC)
     return 0;
   }
 
-  if (!php_cassandra_validate_object(zkey, map->key_type TSRMLS_CC)) {
+  type = (cassandra_type_map*) zend_object_store_get_object(map->ztype TSRMLS_CC);
+
+  if (!php_cassandra_validate_object(zkey, type->key_type, &key TSRMLS_CC)) {
     return 0;
   }
 
-  if (!php_cassandra_validate_object(zvalue, map->value_type TSRMLS_CC)) {
+  if (!php_cassandra_validate_object(zvalue, type->value_type, &value TSRMLS_CC)) {
     return 0;
   }
 
   map->dirty = 1;
-  HASH_FIND_PTR(map->entries, &zkey, entry);
+  HASH_FIND_PTR(map->entries, &key, entry);
   if (entry == NULL) {
     entry = (cassandra_map_entry*)emalloc(sizeof(cassandra_map_entry));
-    entry->key = zkey;
+    entry->key = key;
     entry->value = NULL;
-    Z_ADDREF_P(zkey);
+    Z_ADDREF_P(key);
     HASH_ADD_PTR(map->entries, key, entry);
   } else {
     zval_ptr_dtor(&entry->value);
   }
 
-  if (zvalue != entry->value) {
-    Z_ADDREF_P(zvalue);
-    entry->value = zvalue;
+  if (value != entry->value) {
+    Z_ADDREF_P(value);
+    entry->value = value;
   }
 
   return result;
@@ -54,13 +59,17 @@ static int
 php_cassandra_map_get(cassandra_map* map, zval* zkey, zval** zvalue TSRMLS_DC)
 {
   cassandra_map_entry* entry;
+  cassandra_type_map* type;
+  zval* key;
   int result = 0;
 
-  if (!php_cassandra_validate_object(zkey, map->key_type TSRMLS_CC)) {
+  type = (cassandra_type_map*) zend_object_store_get_object(map->ztype TSRMLS_CC);
+
+  if (!php_cassandra_validate_object(zkey, type->key_type, &key TSRMLS_CC)) {
     return 0;
   }
 
-  HASH_FIND_PTR(map->entries, &zkey, entry);
+  HASH_FIND_PTR(map->entries, &key, entry);
   if (entry != NULL) {
     *zvalue = entry->value;
     result = 1;
@@ -73,9 +82,13 @@ static int
 php_cassandra_map_del(cassandra_map* map, zval* zkey TSRMLS_DC)
 {
   cassandra_map_entry* entry;
+  cassandra_type_map* type;
+  zval* key;
   int result = 0;
 
-  if (!php_cassandra_validate_object(zkey, map->key_type TSRMLS_CC)) {
+  type = (cassandra_type_map*) zend_object_store_get_object(map->ztype TSRMLS_CC);
+
+  if (!php_cassandra_validate_object(zkey, type->key_type, &key TSRMLS_CC)) {
     return 0;
   }
 
@@ -99,9 +112,13 @@ static int
 php_cassandra_map_has(cassandra_map* map, zval* zkey TSRMLS_DC)
 {
   cassandra_map_entry* entry;
+  cassandra_type_map* type;
+  zval* key;
   int result = 0;
 
-  if (!php_cassandra_validate_object(zkey, map->key_type TSRMLS_CC)) {
+  type = (cassandra_type_map*) zend_object_store_get_object(map->ztype TSRMLS_CC);
+
+  if (!php_cassandra_validate_object(zkey, type->key_type, &key TSRMLS_CC)) {
     return 0;
   }
 
@@ -151,27 +168,36 @@ PHP_METHOD(Map, __construct)
 
   map = (cassandra_map*) zend_object_store_get_object(getThis() TSRMLS_CC);
 
+  // TODO(mpenick): Handle both strings and types
+#if 0
   if (!php_cassandra_value_type(key_type, &map->key_type TSRMLS_CC))
     return;
   php_cassandra_value_type(value_type, &map->value_type TSRMLS_CC);
+#endif
 }
 /* }}} */
 
 /* {{{ Cassandra\Map::keyType() */
 PHP_METHOD(Map, keyType)
 {
+  // TODO(mpenick): Can this return the type object?
+#if 0
   cassandra_map* map = (cassandra_map*) zend_object_store_get_object(getThis() TSRMLS_CC);
 
   RETURN_STRING(php_cassandra_type_name(map->key_type), 1);
+#endif
 }
 /* }}} */
 
 /* {{{ Cassandra\Map::valueType() */
 PHP_METHOD(Map, valueType)
 {
+  // TODO(mpenick): Can this return the type object?
+#if 0
   cassandra_map* map = (cassandra_map*) zend_object_store_get_object(getThis() TSRMLS_CC);
 
   RETURN_STRING(php_cassandra_type_name(map->value_type), 1);
+#endif
 }
 /* }}} */
 
@@ -444,12 +470,15 @@ php_cassandra_map_free(void *object TSRMLS_DC)
   cassandra_map* map = (cassandra_map*) object;
   cassandra_map_entry* curr, * temp;
 
+  zval_ptr_dtor(&map->ztype); /* TODO(mpenick): Move to Value dtor? */
+
   HASH_ITER(hh, map->entries, curr, temp) {
     zval_ptr_dtor(&curr->key);
     zval_ptr_dtor(&curr->value);
     HASH_DEL(map->entries, curr);
     efree(curr);
   }
+
   zend_object_std_dtor(&map->zval TSRMLS_CC);
 
   efree(map);

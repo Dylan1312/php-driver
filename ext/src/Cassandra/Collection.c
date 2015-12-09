@@ -44,8 +44,11 @@ php_cassandra_collection_find(cassandra_collection* collection, zval* object, lo
   zval**      current;
   zval        compare;
   ulong       idx;
+  cassandra_type_collection* type;
 
-  if (!php_cassandra_validate_object(object, collection->type TSRMLS_CC))
+  type = (cassandra_type_collection*) zend_object_store_get_object(collection->ztype TSRMLS_CC);
+
+  if (!php_cassandra_validate_object(object, type->element_type, NULL TSRMLS_CC))
     return 0;
 
   zend_hash_get_pointer(&collection->values, &ptr);
@@ -130,6 +133,9 @@ PHP_METHOD(Collection, add)
   zval*** args;
   cassandra_collection* collection = NULL;
   int argc, i;
+  cassandra_type_collection* type;
+
+  type = (cassandra_type_collection*) zend_object_store_get_object(collection->ztype TSRMLS_CC);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "+", &args, &argc) == FAILURE)
     return;
@@ -144,7 +150,7 @@ PHP_METHOD(Collection, add)
       RETURN_FALSE;
     }
 
-    if (!php_cassandra_validate_object(*args[i], collection->type TSRMLS_CC)) {
+    if (!php_cassandra_validate_object(*args[i], type->element_type, NULL TSRMLS_CC)) {
       efree(args);
       RETURN_FALSE;
     }
