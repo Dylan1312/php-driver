@@ -63,7 +63,7 @@ PHP_METHOD(Uuid, uuid)
 }
 /* }}} */
 
-/* {{{ Cassandra\Uuid::value() */
+/* {{{ Cassandra\Uuid::version() */
 PHP_METHOD(Uuid, version)
 {
   cassandra_uuid* uuid = (cassandra_uuid*) zend_object_store_get_object(getThis() TSRMLS_CC);

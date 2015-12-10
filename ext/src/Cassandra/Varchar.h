@@ -1,0 +1,6 @@
+#ifndef PHP_CASSANDRA_VARCHAR_H
+#define PHP_CASSANDRA_VARCHAR_H
+
+void php_cassandra_varchar_init(INTERNAL_FUNCTION_PARAMETERS);
+
+#endif /* PHP_CASSANDRA_VARCHAR_H */

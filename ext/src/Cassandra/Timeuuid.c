@@ -63,7 +63,7 @@ PHP_METHOD(Timeuuid, uuid)
 }
 /* }}} */
 
-/* {{{ Cassandra\Timeuuid::value() */
+/* {{{ Cassandra\Timeuuid::version() */
 PHP_METHOD(Timeuuid, version)
 {
   cassandra_uuid* uuid = (cassandra_uuid*) zend_object_store_get_object(getThis() TSRMLS_CC);
@@ -72,7 +72,7 @@ PHP_METHOD(Timeuuid, version)
 }
 /* }}} */
 
-/* {{{ Cassandra\Timeuuid::value() */
+/* {{{ Cassandra\Timeuuid::time() */
 PHP_METHOD(Timeuuid, time)
 {
   cassandra_uuid* uuid;
@@ -82,7 +82,7 @@ PHP_METHOD(Timeuuid, time)
 }
 /* }}} */
 
-/* {{{ Cassandra\Timeuuid::value() */
+/* {{{ Cassandra\Timeuuid::toDateTime() */
 PHP_METHOD(Timeuuid, toDateTime)
 {
   cassandra_uuid* uuid;

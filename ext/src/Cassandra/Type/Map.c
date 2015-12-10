@@ -1,6 +1,5 @@
 #include "php_cassandra.h"
 #include "util/types.h"
-#include <ext/standard/php_smart_str.h>
 #include "src/Cassandra/Map.h"
 
 zend_class_entry *cassandra_type_map_ce = NULL;
@@ -41,11 +40,7 @@ PHP_METHOD(TypeMap, valueType)
 PHP_METHOD(TypeMap, __toString)
 {
   cassandra_type_map* self;
-#if 0
-  const char* key_type;
-  const char* value_type;
   smart_str string = {NULL, 0, 0};
-#endif
 
   if (zend_parse_parameters_none() == FAILURE) {
     return;
@@ -53,20 +48,9 @@ PHP_METHOD(TypeMap, __toString)
 
   self = (cassandra_type_map*) zend_object_store_get_object(getThis() TSRMLS_CC);
 
-  // TODO(mpenick): Fix this
-#if 0
-  key_type   = php_cassandra_scalar_type_name(self->key_type TSRMLS_CC);
-  value_type = php_cassandra_scalar_type_name(self->value_type TSRMLS_CC);
-
-  smart_str_appendl(&string, "map<", 4);
-  smart_str_appendl(&string, key_type, strlen(key_type));
-  smart_str_appendl(&string, ", ", 2);
-  smart_str_appendl(&string, value_type, strlen(value_type));
-  smart_str_appendl(&string, ">", 1);
+  php_cassandra_type_string((cassandra_type*)self, &string TSRMLS_CC);
   smart_str_0(&string);
-
   RETURN_STRING(string.c, 0);
-#endif
 }
 
 PHP_METHOD(TypeMap, create)
@@ -134,6 +118,9 @@ php_cassandra_type_map_free(void *object TSRMLS_DC)
   cassandra_type_map* map = (cassandra_type_map*) object;
 
   zend_object_std_dtor(&map->zval TSRMLS_CC);
+
+  if (map->key_type) zval_ptr_dtor(&map->key_type);
+  if (map->value_type) zval_ptr_dtor(&map->value_type);
 
   efree(map);
 }

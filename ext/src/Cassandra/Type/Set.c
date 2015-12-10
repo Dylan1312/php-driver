@@ -1,6 +1,5 @@
 #include "php_cassandra.h"
 #include "util/types.h"
-#include <ext/standard/php_smart_str.h>
 #include "src/Cassandra/Set.h"
 
 zend_class_entry *cassandra_type_set_ce = NULL;
@@ -31,7 +30,6 @@ PHP_METHOD(TypeSet, type)
 PHP_METHOD(TypeSet, __toString)
 {
   cassandra_type_set* self;
-  const char* type;
   smart_str string = {NULL, 0, 0};
 
   if (zend_parse_parameters_none() == FAILURE) {
@@ -39,13 +37,9 @@ PHP_METHOD(TypeSet, __toString)
   }
 
   self = (cassandra_type_set*) zend_object_store_get_object(getThis() TSRMLS_CC);
-  type = php_cassandra_scalar_type_name(self->type TSRMLS_CC);
 
-  smart_str_appendl(&string, "set<", 4);
-  smart_str_appendl(&string, type, strlen(type));
-  smart_str_appendl(&string, ">", 1);
+  php_cassandra_type_string((cassandra_type*)self, &string TSRMLS_CC);
   smart_str_0(&string);
-
   RETURN_STRING(string.c, 0);
 }
 

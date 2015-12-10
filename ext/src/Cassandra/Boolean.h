@@ -1,0 +1,6 @@
+#ifndef PHP_CASSANDRA_BOOLEAN_H
+#define PHP_CASSANDRA_BOOLEAN_H
+
+void php_cassandra_boolean_init(INTERNAL_FUNCTION_PARAMETERS);
+
+#endif /* PHP_CASSANDRA_BOOLEAN_H */

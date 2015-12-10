@@ -105,8 +105,9 @@ typedef struct {
   cassandra_set_entry* entries;
   unsigned hashv;
   int dirty;
-  HashTable values;
-  int pos;
+  cassandra_set_entry* iter_curr;
+  cassandra_set_entry* iter_temp;
+  int iter_index;
 } cassandra_set;
 
 typedef struct {
@@ -401,10 +402,11 @@ extern PHP_CASSANDRA_API zend_class_entry* cassandra_timeuuid_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_varint_ce;
 
 // TODO(mpenick): Create types
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_int_ce;
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_double_ce;
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_string_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_ascii_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_boolean_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_double_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_int_ce;
+extern PHP_CASSANDRA_API zend_class_entry* cassandra_varchar_ce;
 
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_set_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_map_ce;
