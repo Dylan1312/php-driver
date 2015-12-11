@@ -1,5 +1,6 @@
 #include "php_cassandra.h"
 #include "util/collections.h"
+#include "util/hash.h"
 #include "util/types.h"
 #include "src/Cassandra/Set.h"
 

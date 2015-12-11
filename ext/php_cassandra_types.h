@@ -1,18 +1,6 @@
 #ifndef PHP_CASSANDRA_TYPES_H
 #define PHP_CASSANDRA_TYPES_H
 
-#define uthash_malloc(sz) emalloc(sz)
-#define uthash_free(ptr,sz) efree(ptr)
-
-#define HASH_FUNCTION(key,keylen,num_bkts,hashv,bkt)                \
-  hashv = php_cassandra_value_hash(*((const zval**)key) TSRMLS_CC); \
-  bkt = (hashv) & (num_bkts - 1U)
-
-#define HASH_KEYCOMPARE(a, b, len) \
-  php_cassandra_value_compare(*((const zval**)a), *((const zval**)b) TSRMLS_CC)
-
-#include "util/uthash.h"
-
 #define VALUE_FIELDS  \
   zend_object zval;   \
   CassValueType type; \
@@ -94,10 +82,7 @@ typedef struct {
   CassInet inet;
 } cassandra_inet;
 
-typedef struct {
-  zval* element;
-  UT_hash_handle hh;
-} cassandra_set_entry;
+typedef struct cassandra_set_entry_ cassandra_set_entry;
 
 typedef struct {
   VALUE_FIELDS
@@ -110,11 +95,7 @@ typedef struct {
   int iter_index;
 } cassandra_set;
 
-typedef struct {
-  zval* key;
-  zval* value;
-  UT_hash_handle hh;
-} cassandra_map_entry;
+typedef struct cassandra_map_entry_ cassandra_map_entry;
 
 typedef struct {
   VALUE_FIELDS

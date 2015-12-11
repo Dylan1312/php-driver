@@ -1,7 +1,8 @@
 #include "php_cassandra.h"
 #include <stdlib.h>
-#include "util/collections.h"
 #include "util/bytes.h"
+#include "util/collections.h"
+#include "util/hash.h"
 #include "util/math.h"
 #include "util/types.h"
 
