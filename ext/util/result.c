@@ -178,10 +178,10 @@ php_cassandra_value(const CassValue* value, CassValueType type, zval** out TSRML
 
 #if CURRENT_CPP_DRIVER_VERSION >= CPP_DRIVER_VERSION(2, 1, 0)
     primary_type = cass_data_type_sub_data_type(type, 0);
-    collection->ztype = php_cassandara_type_from_data_type(type TSRMLS_CC);
+    collection->type = php_cassandra_type_from_data_type(type TSRMLS_CC);
 #else
     primary_type = cass_value_primary_sub_type(value);
-    collection->ztype = php_cassandra_type_collection_from_value_type(primary_type);
+    collection->type = php_cassandra_type_collection_from_value_type(primary_type);
 #endif
 
     iterator = cass_iterator_from_collection(value);
@@ -208,11 +208,11 @@ php_cassandra_value(const CassValue* value, CassValueType type, zval** out TSRML
 #if CURRENT_CPP_DRIVER_VERSION >= CPP_DRIVER_VERSION(2, 1, 0)
     primary_type = cass_data_type_sub_data_type(type, 0);
     secondary_type = cass_data_type_sub_data_type(type, 1);
-    map->ztype = php_cassandara_type_from_data_type(type TSRMLS_CC);
+    map->type = php_cassandra_type_from_data_type(type TSRMLS_CC);
 #else
     primary_type = cass_value_primary_sub_type(value);
     secondary_type = cass_value_secondary_sub_type(value);
-    map->ztype = php_cassandra_type_map_from_value_types(primary_type, secondary_type);
+    map->type = php_cassandra_type_map_from_value_types(primary_type, secondary_type);
 #endif
 
     iterator = cass_iterator_from_map(value);
@@ -241,11 +241,11 @@ php_cassandra_value(const CassValue* value, CassValueType type, zval** out TSRML
 
 #if CURRENT_CPP_DRIVER_VERSION >= CPP_DRIVER_VERSION(2, 1, 0)
     primary_type = cass_data_type_sub_data_type(type, 0);
-    set->ztype = php_cassandara_type_from_data_type(type TSRMLS_CC);
+    set->type = php_cassandra_type_from_data_type(type TSRMLS_CC);
 #else
     primary_type = cass_value_primary_sub_type(value);
     secondary_type = cass_value_secondary_sub_type(value);
-    set->ztype = php_cassandra_type_set_from_value_type(primary_type);
+    set->type = php_cassandra_type_set_from_value_type(primary_type);
 #endif
 
     iterator = cass_iterator_from_collection(value);

@@ -60,8 +60,8 @@ PHP_METHOD(TypeSet, create)
   object_init_ex(return_value, cassandra_set_ce);
   set = (cassandra_set*) zend_object_store_get_object(return_value TSRMLS_CC);
 
-  set->ztype = getThis();
-  Z_ADDREF_P(set->ztype);
+  set->type = getThis();
+  Z_ADDREF_P(set->type);
 
   if (argc > 0) {
     for (i = 0; i < argc; i++) {

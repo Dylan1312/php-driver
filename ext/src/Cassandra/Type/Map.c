@@ -80,8 +80,8 @@ PHP_METHOD(TypeMap, create)
   object_init_ex(return_value, cassandra_map_ce);
   map = (cassandra_map*) zend_object_store_get_object(return_value TSRMLS_CC);
 
-  map->ztype = getThis();
-  Z_ADDREF_P(map->ztype);
+  map->type = getThis();
+  Z_ADDREF_P(map->type);
 
   if (argc > 0) {
     for (i = 0; i < argc; i += 2) {

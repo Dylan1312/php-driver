@@ -8,6 +8,7 @@
 *.lai
 *.libs
 *.sw*
+*.loT
 Makefile
 Makefile.fragments
 Makefile.global

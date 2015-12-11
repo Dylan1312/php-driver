@@ -17,6 +17,25 @@
 
 #define CHECK_ERROR(rc) ASSERT_SUCCESS_BLOCK(rc, result = 0;)
 
+static inline cass_int64_t
+double_to_bits(cass_double_t value) {
+  cass_int64_t bits;
+  if (zend_isnan(value)) return 0x7ff8000000000000LL; /* A canonical NaN value */
+  memcpy(&bits, &value, sizeof(cass_int64_t));
+  return bits;
+}
+
+static inline cass_int32_t
+float_to_bits(cass_float_t value) {
+  cass_int32_t bits;
+  if (zend_isnan(value)) return 0x7fc00000; /* A canonical NaN value */
+  memcpy(&bits, &value, sizeof(cass_int32_t));
+  return bits;
+}
+
+static unsigned
+value_hash(cassandra_value* value, cassandra_type* type TSRMLS_DC);
+
 static inline unsigned
 combine_hash(unsigned seed, unsigned  hashv) {
   return seed ^ (hashv + 0x9e3779b9 + (seed << 6) + (seed >> 2));
@@ -38,21 +57,36 @@ bigint_hash(cass_int64_t value) {
 }
 
 static inline unsigned
-float_hash(cass_float_t value) {
-  // TODO(mpenick):
-  return 0;
+double_hash(cass_double_t value) {
+  return bigint_hash(double_to_bits(value));
 }
 
 static inline unsigned
-double_hash(cass_float_t value) {
-  // TODO(mpenick):
-  return 0;
+float_hash(cass_float_t value) {
+  return float_to_bits(value);
+}
+
+static inline unsigned
+mpz_hash(unsigned seed, mpz_t n) {
+  size_t i;
+  size_t size = mpz_size(n);
+  const mp_limb_t* limbs = mpz_limbs_read(n);
+  unsigned hashv = seed;
+#if GMP_LIMB_BITS == 64
+    for (i = 0; i < size; ++i) {
+      hashv = combine_hash(hashv, bigint_hash(limbs[i]));
+    }
+#else
+    for (i = 0; i < size; ++i) {
+      hashv = combine_hash(hashv, limbs[i]);
+    }
+#endif
+    return hashv;
 }
 
 static inline unsigned
 decimal_hash(cassandra_decimal* value) {
-  // TODO(mpenick):
-  return 0;
+  return mpz_hash((unsigned)value->scale, value->value);
 }
 
 static inline unsigned
@@ -63,8 +97,7 @@ uuid_hash(cassandra_uuid* value) {
 
 static inline unsigned
 varint_hash(cassandra_varint* value) {
-  // TODO(mpenick):
-  return 0;
+  return mpz_hash(0, value->value);
 }
 
 static inline unsigned
@@ -74,43 +107,82 @@ inet_hash(cassandra_inet* value) {
 }
 
 static inline unsigned
-collection_hash(cassandra_collection* value TSRMLS_DC) {
-  // TODO(mpenick):
-  return 0;
+collection_hash(cassandra_collection* value, cassandra_type_collection* type TSRMLS_DC) {
+  cassandra_type* element_type;
+  HashPointer ptr;
+  zval** current;
+
+  unsigned hashv = 0;
+  if (!value->dirty) return value->hashv;
+
+  element_type = (cassandra_type*) zend_object_store_get_object(type->element_type TSRMLS_CC);
+
+  zend_hash_get_pointer(&value->values, &ptr);
+  zend_hash_internal_pointer_reset(&value->values);
+
+  while (zend_hash_get_current_data(&value->values, (void**) &current) == SUCCESS) {
+    cassandra_value* element = (cassandra_value*)zend_object_store_get_object(*current TSRMLS_CC);
+    hashv = combine_hash(hashv, value_hash(element, element_type TSRMLS_CC));
+    zend_hash_move_forward(&value->values);
+  }
+
+  zend_hash_set_pointer(&value->values, &ptr);
+
+  value->hashv = hashv;
+  value->dirty = 0;
+
+  return hashv;
 }
 
 static inline unsigned
-map_hash(cassandra_map* value TSRMLS_DC) {
+map_hash(cassandra_map* value, cassandra_type_map* type TSRMLS_DC) {
+  cassandra_type* key_type;
+  cassandra_type* value_type;
   cassandra_map_entry* curr, * temp;
-  unsigned hashv = 0x9e3779b9;
+
+  unsigned hashv = 0;
   if (!value->dirty) return value->hashv;
+
+  key_type = (cassandra_type*) zend_object_store_get_object(type->key_type TSRMLS_CC);
+  value_type = (cassandra_type*) zend_object_store_get_object(type->value_type TSRMLS_CC);
+
   HASH_ITER(hh, value->entries, curr, temp) {
-    hashv = combine_hash(hashv, php_cassandra_value_hash(curr->key TSRMLS_CC));
-    hashv = combine_hash(hashv, php_cassandra_value_hash(curr->value TSRMLS_CC));
+    cassandra_value* key = (cassandra_value*)zend_object_store_get_object(curr->key TSRMLS_CC);
+    cassandra_value* value = (cassandra_value*)zend_object_store_get_object(curr->value TSRMLS_CC);
+    hashv = combine_hash(hashv, value_hash(key, key_type TSRMLS_CC));
+    hashv = combine_hash(hashv, value_hash(value, value_type TSRMLS_CC));
   }
+
   value->hashv = hashv;
   value->dirty = 0;
+
   return hashv;
 }
 
 static inline unsigned
-set_hash(cassandra_set* value TSRMLS_DC) {
+set_hash(cassandra_set* value, cassandra_type_set* type TSRMLS_DC) {
+  cassandra_type* element_type;
   cassandra_set_entry* curr, * temp;
-  unsigned hashv = 0x9e3779b9;
+
+  unsigned hashv = 0;
   if (!value->dirty) return value->hashv;
+
+  element_type = (cassandra_type*) zend_object_store_get_object(type->element_type TSRMLS_CC);
+
   HASH_ITER(hh, value->entries, curr, temp) {
-    hashv = combine_hash(hashv, php_cassandra_value_hash(curr->element TSRMLS_CC));
+    cassandra_value* element = (cassandra_value*)zend_object_store_get_object(curr->element TSRMLS_CC);
+    hashv = combine_hash(hashv, value_hash(element, element_type TSRMLS_CC));
   }
+
   value->hashv = hashv;
   value->dirty = 0;
+
   return hashv;
 }
 
-unsigned
-php_cassandra_value_hash(const zval* zvalue TSRMLS_DC) {
-  const cassandra_value* value = (const cassandra_value*) zend_object_store_get_object(zvalue TSRMLS_CC);
-
-  switch(value->type) {
+static unsigned
+value_hash(cassandra_value* value, cassandra_type* type TSRMLS_DC) {
+  switch(type->type) {
     case CASS_VALUE_TYPE_ASCII:
     case CASS_VALUE_TYPE_VARCHAR:
     case CASS_VALUE_TYPE_TEXT:
@@ -154,13 +226,16 @@ php_cassandra_value_hash(const zval* zvalue TSRMLS_DC) {
       return inet_hash((cassandra_inet*)value);
 
     case CASS_VALUE_TYPE_LIST:
-      return collection_hash((cassandra_collection*)value TSRMLS_CC);
+      return collection_hash((cassandra_collection*)value,
+                             (cassandra_type_collection*)type TSRMLS_CC);
 
     case CASS_VALUE_TYPE_MAP:
-      return map_hash((cassandra_map*)value TSRMLS_CC);
+      return map_hash((cassandra_map*)value,
+                      (cassandra_type_map*)type TSRMLS_CC);
 
     case CASS_VALUE_TYPE_SET:
-      return set_hash((cassandra_set*)value TSRMLS_CC);
+      return set_hash((cassandra_set*)value,
+                      (cassandra_type_set*)type TSRMLS_CC);
 
     default:
       break;
@@ -168,6 +243,19 @@ php_cassandra_value_hash(const zval* zvalue TSRMLS_DC) {
 
   return 0;
 }
+
+unsigned
+php_cassandra_value_hash(const zval* zvalue TSRMLS_DC) {
+  cassandra_value* value = (cassandra_value*) zend_object_store_get_object(zvalue TSRMLS_CC);
+  cassandra_type* type = (cassandra_type*) zend_object_store_get_object(value->type TSRMLS_CC);
+  return value_hash(value, type TSRMLS_CC);
+}
+
+#define COMPARE(a, b) ((a) < (b) ? -1 : (a) > (b))
+
+static int
+value_compare(cassandra_value* zvalue1, cassandra_type* type1,
+              cassandra_value* zvalue2, cassandra_type* type2 TSRMLS_DC);
 
 static inline int
 string_compare(cassandra_string* value1, cassandra_string* value2) {
@@ -185,20 +273,36 @@ blob_compare(cassandra_blob* value1, cassandra_blob* value2) {
 
 static inline int
 double_compare(cassandra_double* value1, cassandra_double* value2) {
-  // TODO(mpenick):
-  return 0;
+  cass_int64_t bits1, bits2;
+  cass_double_t d1 = value1->value;
+  cass_double_t d2 = value2->value;
+  if (d1 < d2) return -1;
+  if (d1 > d2) return  1;
+  bits1 = double_to_bits(d1);
+  bits2 = double_to_bits(d2);
+  /* Handle NaNs and negative and positive 0.0 */
+  return COMPARE(bits1, bits2);
 }
 
 static inline int
 float_compare(cassandra_float* value1, cassandra_float* value2) {
-  // TODO(mpenick):
-  return 0;
+  cass_int64_t bits1, bits2;
+  cass_double_t d1 = value1->value;
+  cass_double_t d2 = value2->value;
+  if (d1 < d2) return -1;
+  if (d1 > d2) return  1;
+  bits1 = double_to_bits(d1);
+  bits2 = double_to_bits(d2);
+  /* Handle NaNs and negative and positive 0.0 */
+  return COMPARE(bits1, bits2);
 }
 
 static inline int
 decimal_compare(cassandra_decimal* value1, cassandra_decimal* value2) {
-  // TODO(mpenick):
-  return 0;
+  if (value1->scale != value2->scale) {
+    return value1->scale < value2->scale ? -1 : 1;
+  }
+  return mpz_cmp(value1->value, value2->value);
 }
 
 static inline int
@@ -212,99 +316,200 @@ uuid_compare_(cassandra_uuid* value1, cassandra_uuid* value2) {
 
 static inline int
 varint_compare(cassandra_varint* value1, cassandra_varint* value2) {
-  // TODO(mpenick):
-  return 0;
+  return mpz_cmp(value1->value, value2->value);
 }
 
 static inline int
 inet_compare(cassandra_inet* value1, cassandra_inet* value2) {
-  // TODO(mpenick):
+  if (value1->inet.address_length != value2->inet.address_length) {
+   return value1->inet.address_length < value2->inet.address_length ? -1 : 1;
+  }
+  return memcmp(value1->inet.address, value2->inet.address, value1->inet.address_length);
+}
+
+static inline int
+collection_compare(cassandra_collection* value1, cassandra_type_collection* type1,
+                   cassandra_collection* value2, cassandra_type_collection* type2 TSRMLS_DC) {
+  HashPointer ptr1;
+  zval** current1;
+  HashPointer ptr2;
+  zval** current2;
+  cassandra_type* element_type1;
+  cassandra_type* element_type2;
+
+  if (zend_hash_num_elements(&value1->values) != zend_hash_num_elements(&value2->values)) {
+    return zend_hash_num_elements(&value1->values) < zend_hash_num_elements(&value2->values) ? -1 : 1;
+  }
+
+  element_type1 = (cassandra_type*) zend_object_store_get_object(type1->element_type TSRMLS_CC);
+  element_type2 = (cassandra_type*) zend_object_store_get_object(type2->element_type TSRMLS_CC);
+
+  zend_hash_get_pointer(&value1->values, &ptr1);
+  zend_hash_internal_pointer_reset(&value1->values);
+
+  zend_hash_get_pointer(&value2->values, &ptr2);
+  zend_hash_internal_pointer_reset(&value2->values);
+
+  while (zend_hash_get_current_data(&value1->values, (void**) &current1) == SUCCESS &&
+         zend_hash_get_current_data(&value2->values, (void**) &current2) == SUCCESS) {
+    int r;
+    cassandra_value* element1 = (cassandra_value*)zend_object_store_get_object(*current1 TSRMLS_CC);
+    cassandra_value* element2 = (cassandra_value*)zend_object_store_get_object(*current2 TSRMLS_CC);
+    r = value_compare(element1, element_type1, element2, element_type2 TSRMLS_CC);
+    if (r != 0) return r;
+
+    zend_hash_move_forward(&value1->values);
+    zend_hash_move_forward(&value2->values);
+  }
+
+  zend_hash_set_pointer(&value1->values, &ptr1);
+  zend_hash_set_pointer(&value2->values, &ptr2);
+
   return 0;
 }
 
 static inline int
-collection_compare(cassandra_collection* value1, cassandra_collection* value2 TSRMLS_DC) {
-  // TODO(mpenick):
+map_compare(cassandra_map* value1, cassandra_type_map* type1,
+            cassandra_map* value2, cassandra_type_map* type2 TSRMLS_DC) {
+  cassandra_map_entry* iter1;
+  cassandra_map_entry* iter2;
+  cassandra_type* key_type1;
+  cassandra_type* value_type1;
+  cassandra_type* key_type2;
+  cassandra_type* value_type2;
+
+  if (HASH_COUNT(value1->entries) != HASH_COUNT(value1->entries)) {
+   return HASH_COUNT(value1->entries) < HASH_COUNT(value1->entries) ? -1 : 1;
+  }
+
+  key_type1 = (cassandra_type*) zend_object_store_get_object(type1->key_type TSRMLS_CC);
+  value_type1 = (cassandra_type*) zend_object_store_get_object(type1->value_type TSRMLS_CC);
+
+  key_type2 = (cassandra_type*) zend_object_store_get_object(type2->key_type TSRMLS_CC);
+  value_type2 = (cassandra_type*) zend_object_store_get_object(type2->value_type TSRMLS_CC);
+
+  iter1 = value1->entries;
+  iter2 = value2->entries;
+  while (iter1 && iter2) {
+    int r;
+    cassandra_value* key1;
+    cassandra_value* key2;
+    cassandra_value* value1;
+    cassandra_value* value2;
+
+    key1 = (cassandra_value*) zend_object_store_get_object(iter1->key TSRMLS_CC);
+    key2 = (cassandra_value*) zend_object_store_get_object(iter2->key TSRMLS_CC);
+    r = value_compare(key1, key_type1, key2, key_type2 TSRMLS_CC);
+    if (r != 0) return r;
+
+    value1 = (cassandra_value*) zend_object_store_get_object(iter1->value TSRMLS_CC);
+    value2 = (cassandra_value*) zend_object_store_get_object(iter2->value TSRMLS_CC);
+    r = value_compare(value1, value_type1, value2, value_type2 TSRMLS_CC);
+    if (r != 0) return r;
+
+    iter1 = (cassandra_map_entry*)iter1->hh.next;
+    iter2 = (cassandra_map_entry*)iter2->hh.next;
+  }
+
   return 0;
 }
 
 static inline int
-map_compare(cassandra_map* value1, cassandra_map* value2 TSRMLS_DC) {
-  // TODO(mpenick):
+set_compare(cassandra_set* value1, cassandra_type_set* type1,
+            cassandra_set* value2, cassandra_type_set* type2 TSRMLS_DC) {
+  cassandra_set_entry* iter1;
+  cassandra_set_entry* iter2;
+  cassandra_type* element_type1;
+  cassandra_type* element_type2;
+
+  if (HASH_COUNT(value1->entries) != HASH_COUNT(value1->entries)) {
+   return HASH_COUNT(value1->entries) < HASH_COUNT(value1->entries) ? -1 : 1;
+  }
+
+  element_type1 = (cassandra_type*) zend_object_store_get_object(type1->element_type TSRMLS_CC);
+  element_type2 = (cassandra_type*) zend_object_store_get_object(type2->element_type TSRMLS_CC);
+
+  iter1 = value1->entries;
+  iter2 = value2->entries;
+  while (iter1 && iter2) {
+    int r;
+    cassandra_value* element1 = (cassandra_value*) zend_object_store_get_object(iter1->element TSRMLS_CC);
+    cassandra_value* element2 = (cassandra_value*) zend_object_store_get_object(iter2->element TSRMLS_CC);
+
+    r = value_compare(element1, element_type1, element2, element_type2 TSRMLS_CC);
+    if (r != 0) return r;
+    iter1 = (cassandra_set_entry*)iter1->hh.next;
+    iter2 = (cassandra_set_entry*)iter2->hh.next;
+  }
+
   return 0;
 }
 
-static inline int
-set_compare(cassandra_set* value1, cassandra_set* value2 TSRMLS_DC) {
-  // TODO(mpenick):
-  return 0;
-}
+static int
+value_compare(cassandra_value* value1, cassandra_type* type1,
+              cassandra_value* value2, cassandra_type* type2 TSRMLS_DC) {
+  int result;
 
-#define COMPARE(a, b) ((a) < (b) ? -1 : (a) > (b))
+  if (value1 == value2) return 0;
 
-int
-php_cassandra_value_compare(const zval* zvalue1, const zval* zvalue2 TSRMLS_DC) {
-  const cassandra_value* a;
-  const cassandra_value* b;
+  result = php_cassandra_type_compare(type1, type2 TSRMLS_CC);
 
-  if (zvalue1 == zvalue2) return 0;
+  if (result != 0) return result;
 
-  a = (const cassandra_value*) zend_object_store_get_object(zvalue1 TSRMLS_CC);
-  b = (const cassandra_value*) zend_object_store_get_object(zvalue2 TSRMLS_CC);
-
-  if (a->type != b->type)  return a->type < b->type ? -1 : 1;
-
-  switch(a->type) {
+  switch(type1->type) {
     case CASS_VALUE_TYPE_ASCII:
     case CASS_VALUE_TYPE_VARCHAR:
     case CASS_VALUE_TYPE_TEXT:
-      return string_compare((cassandra_string*)a, (cassandra_string*)b);
+      return string_compare((cassandra_string*)value1, (cassandra_string*)value2);
 
     case CASS_VALUE_TYPE_BIGINT:
-      return COMPARE(((cassandra_bigint*)a)->value, ((cassandra_bigint*)b)->value);
+      return COMPARE(((cassandra_bigint*)value1)->value, ((cassandra_bigint*)value2)->value);
 
     case CASS_VALUE_TYPE_BLOB:
-      return blob_compare((cassandra_blob*)a, (cassandra_blob*)b);
+      return blob_compare((cassandra_blob*)value1, (cassandra_blob*)value2);
 
     case CASS_VALUE_TYPE_BOOLEAN:
-      return COMPARE(((cassandra_boolean*)a)->value, ((cassandra_boolean*)b)->value);
+      return COMPARE(((cassandra_boolean*)value1)->value, ((cassandra_boolean*)value2)->value);
 
     case CASS_VALUE_TYPE_COUNTER:
-      return COMPARE(((cassandra_counter*)a)->counter, ((cassandra_counter*)b)->counter);
+      return COMPARE(((cassandra_counter*)value1)->counter, ((cassandra_counter*)value2)->counter);
 
     case CASS_VALUE_TYPE_DECIMAL:
-      return decimal_compare((cassandra_decimal*)a, (cassandra_decimal*)b);
+      return decimal_compare((cassandra_decimal*)value1, (cassandra_decimal*)value2);
 
     case CASS_VALUE_TYPE_DOUBLE:
-      return double_compare((cassandra_double*)a, (cassandra_double*)b);
+      return double_compare((cassandra_double*)value1, (cassandra_double*)value2);
 
     case CASS_VALUE_TYPE_FLOAT:
-      return float_compare((cassandra_float*)a, (cassandra_float*)b);
+      return float_compare((cassandra_float*)value1, (cassandra_float*)value2);
 
     case CASS_VALUE_TYPE_INT:
-      return COMPARE(((cassandra_int*)a)->value, ((cassandra_int*)b)->value);
+      return COMPARE(((cassandra_int*)value1)->value, ((cassandra_int*)value2)->value);
 
     case CASS_VALUE_TYPE_TIMESTAMP:
-      return COMPARE(((cassandra_timestamp*)a)->timestamp, ((cassandra_timestamp*)b)->timestamp);
+      return COMPARE(((cassandra_timestamp*)value1)->timestamp, ((cassandra_timestamp*)value2)->timestamp);
 
     case CASS_VALUE_TYPE_UUID:
     case CASS_VALUE_TYPE_TIMEUUID:
-      return uuid_compare_((cassandra_uuid*)a, (cassandra_uuid*)b);
+      return uuid_compare_((cassandra_uuid*)value1, (cassandra_uuid*)value2);
 
     case CASS_VALUE_TYPE_VARINT:
-      return varint_compare((cassandra_varint*)a, (cassandra_varint*)b);
+      return varint_compare((cassandra_varint*)value1, (cassandra_varint*)value2);
 
     case CASS_VALUE_TYPE_INET:
-      return inet_compare((cassandra_inet*)a, (cassandra_inet*)b);
+      return inet_compare((cassandra_inet*)value1, (cassandra_inet*)value2);
 
     case CASS_VALUE_TYPE_LIST:
-      return collection_compare((cassandra_collection*)a, (cassandra_collection*)b TSRMLS_CC);
+      return collection_compare((cassandra_collection*)value1, (cassandra_type_collection*)type1,
+                                (cassandra_collection*)value2, (cassandra_type_collection*)type2 TSRMLS_CC);
 
     case CASS_VALUE_TYPE_MAP:
-      return map_compare((cassandra_map*)a, (cassandra_map*)b TSRMLS_CC);
+      return map_compare((cassandra_map*)value1, (cassandra_type_map*)type1,
+                         (cassandra_map*)value2, (cassandra_type_map*)type2 TSRMLS_CC);
 
     case CASS_VALUE_TYPE_SET:
-      return set_compare((cassandra_set*)a, (cassandra_set*)b TSRMLS_CC);
+      return set_compare((cassandra_set*)value1, (cassandra_type_set*)type1,
+                         (cassandra_set*)value2, (cassandra_type_set*)type2 TSRMLS_CC);
 
     default:
       break;
@@ -314,6 +519,18 @@ php_cassandra_value_compare(const zval* zvalue1, const zval* zvalue2 TSRMLS_DC) 
 }
 
 #undef COMPARE
+
+int
+php_cassandra_value_compare(const zval* zvalue1, const zval* zvalue2 TSRMLS_DC) {
+  cassandra_value* value1, * value2;
+  cassandra_type* type1, * type2;
+  if (zvalue1 == zvalue2) return 0;
+  value1 = (cassandra_value*) zend_object_store_get_object(zvalue1 TSRMLS_CC);
+  type1 = (cassandra_type*) zend_object_store_get_object(value1->type TSRMLS_CC);
+  value2 = (cassandra_value*) zend_object_store_get_object(zvalue2 TSRMLS_CC);
+  type2 = (cassandra_type*) zend_object_store_get_object(value2->type TSRMLS_CC);
+  return value_compare(value1, type1, value2, type2 TSRMLS_CC);
+}
 
 int
 php_cassandra_validate_object(zval* object, zval* ztype, zval** output TSRMLS_DC)
@@ -444,8 +661,8 @@ php_cassandra_validate_object(zval* object, zval* ztype, zval** output TSRMLS_DC
       EXPECTING_VALUE("an instance of Cassandra\\Map");
     } else {
       cassandra_map* map = (cassandra_map*) zend_object_store_get_object(object TSRMLS_CC);
-      cassandra_type* map_type = (cassandra_type*) zend_object_store_get_object(map->ztype TSRMLS_CC);
-      if (!php_cassandra_type_equals(map_type, type TSRMLS_CC)) {
+      cassandra_type* map_type = (cassandra_type*) zend_object_store_get_object(map->type TSRMLS_CC);
+      if (php_cassandra_type_compare(map_type, type TSRMLS_CC) != 0) {
         return 0;
       }
     }
@@ -457,8 +674,8 @@ php_cassandra_validate_object(zval* object, zval* ztype, zval** output TSRMLS_DC
       EXPECTING_VALUE("an instance of Cassandra\\Set");
     } else {
       cassandra_set* set = (cassandra_set*) zend_object_store_get_object(object TSRMLS_CC);
-      cassandra_type* set_type = (cassandra_type*) zend_object_store_get_object(set->ztype TSRMLS_CC);
-      if (!php_cassandra_type_equals(set_type, type TSRMLS_CC)) {
+      cassandra_type* set_type = (cassandra_type*) zend_object_store_get_object(set->type TSRMLS_CC);
+      if (php_cassandra_type_compare(set_type, type TSRMLS_CC) != 0) {
         return 0;
       }
     }
@@ -470,8 +687,8 @@ php_cassandra_validate_object(zval* object, zval* ztype, zval** output TSRMLS_DC
       EXPECTING_VALUE("an instance of Cassandra\\Collection");
     } else {
       cassandra_collection* collection = (cassandra_collection*) zend_object_store_get_object(object TSRMLS_CC);
-      cassandra_type* collection_type = (cassandra_type*) zend_object_store_get_object(collection->ztype TSRMLS_CC);
-      if (!php_cassandra_type_equals(collection_type, type TSRMLS_CC)) {
+      cassandra_type* collection_type = (cassandra_type*) zend_object_store_get_object(collection->type TSRMLS_CC);
+      if (php_cassandra_type_compare(collection_type, type TSRMLS_CC) != 0) {
         return 0;
       }
     }
@@ -485,91 +702,6 @@ php_cassandra_validate_object(zval* object, zval* ztype, zval** output TSRMLS_DC
     EXPECTING_VALUE("a simple Cassandra value");
 
     return 0;
-  }
-}
-
-int
-php_cassandra_value_type(char* type, CassValueType* value_type TSRMLS_DC)
-{
-  if (strcmp("ascii", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_ASCII;
-  } else if (strcmp("bigint", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_BIGINT;
-  } else if (strcmp("blob", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_BLOB;
-  } else if (strcmp("boolean", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_BOOLEAN;
-  } else if (strcmp("counter", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_COUNTER;
-  } else if (strcmp("decimal", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_DECIMAL;
-  } else if (strcmp("double", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_DOUBLE;
-  } else if (strcmp("float", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_FLOAT;
-  } else if (strcmp("int", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_INT;
-  } else if (strcmp("text", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_TEXT;
-  } else if (strcmp("timestamp", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_TIMESTAMP;
-  } else if (strcmp("uuid", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_UUID;
-  } else if (strcmp("varchar", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_VARCHAR;
-  } else if (strcmp("varint", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_VARINT;
-  } else if (strcmp("timeuuid", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_TIMEUUID;
-  } else if (strcmp("inet", type) == 0) {
-    *value_type = CASS_VALUE_TYPE_INET;
-  } else {
-    zend_throw_exception_ex(cassandra_invalid_argument_exception_ce, 0 TSRMLS_CC,
-      "Unsupported type '%s'", type);
-    return 0;
-  }
-
-  return 1;
-}
-
-const char*
-php_cassandra_type_name(CassValueType value_type)
-{
-  switch (value_type) {
-  case CASS_VALUE_TYPE_TEXT:
-    return "text";
-  case CASS_VALUE_TYPE_ASCII:
-    return "ascii";
-  case CASS_VALUE_TYPE_VARCHAR:
-    return "varchar";
-  case CASS_VALUE_TYPE_BIGINT:
-    return "bigint";
-  case CASS_VALUE_TYPE_BLOB:
-    return "blob";
-  case CASS_VALUE_TYPE_BOOLEAN:
-    return "boolean";
-  case CASS_VALUE_TYPE_COUNTER:
-    return "counter";
-  case CASS_VALUE_TYPE_DECIMAL:
-    return "decimal";
-  case CASS_VALUE_TYPE_DOUBLE:
-    return "double";
-  case CASS_VALUE_TYPE_FLOAT:
-    return "float";
-  case CASS_VALUE_TYPE_INT:
-    return "int";
-  case CASS_VALUE_TYPE_TIMESTAMP:
-    return "timestamp";
-  case CASS_VALUE_TYPE_UUID:
-    return "uuid";
-  case CASS_VALUE_TYPE_VARINT:
-    return "varint";
-  case CASS_VALUE_TYPE_TIMEUUID:
-    return "timeuuid";
-  case CASS_VALUE_TYPE_INET:
-    return "inet";
-  default:
-    return "unknown";
   }
 }
 
@@ -660,7 +792,7 @@ php_cassandra_collection_from_set(cassandra_set* set, CassCollection** collectio
 
   collection = cass_collection_new(CASS_COLLECTION_TYPE_MAP, HASH_COUNT(set->entries));
 
-  type = (cassandra_type_set*) zend_object_store_get_object(set->ztype TSRMLS_CC);
+  type = (cassandra_type_set*) zend_object_store_get_object(set->type TSRMLS_CC);
   element_type = (cassandra_type*) zend_object_store_get_object(type->element_type TSRMLS_CC);
 
   HASH_ITER(hh, set->entries, curr, temp) {
@@ -685,14 +817,19 @@ php_cassandra_collection_from_collection(cassandra_collection* coll, CassCollect
   HashPointer ptr;
   zval** current;
   CassCollection* collection = NULL;
+  cassandra_type_collection* type;
+  cassandra_type* element_type;
 
   zend_hash_get_pointer(&coll->values, &ptr);
   zend_hash_internal_pointer_reset(&coll->values);
 
   collection = cass_collection_new(CASS_COLLECTION_TYPE_LIST, zend_hash_num_elements(&coll->values));
 
+  type = (cassandra_type_collection*) zend_object_store_get_object(coll->type TSRMLS_CC);
+  element_type = (cassandra_type*) zend_object_store_get_object(type->element_type TSRMLS_CC);
+
   while (zend_hash_get_current_data(&coll->values, (void**) &current) == SUCCESS) {
-    if (!php_cassandra_collection_append(collection, *current, coll->type TSRMLS_CC)) {
+    if (!php_cassandra_collection_append(collection, *current, element_type->type TSRMLS_CC)) {
       result = 0;
       break;
     }
@@ -721,7 +858,7 @@ php_cassandra_collection_from_map(cassandra_map* map, CassCollection** collectio
 
   collection = cass_collection_new(CASS_COLLECTION_TYPE_MAP, HASH_COUNT(map->entries));
 
-  type = (cassandra_type_map*) zend_object_store_get_object(map->ztype TSRMLS_CC);
+  type = (cassandra_type_map*) zend_object_store_get_object(map->type TSRMLS_CC);
   key_type = (cassandra_type*) zend_object_store_get_object(type->key_type TSRMLS_CC);
   value_type = (cassandra_type*) zend_object_store_get_object(type->value_type TSRMLS_CC);
 

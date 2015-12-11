@@ -3,8 +3,7 @@
 
 #define VALUE_FIELDS  \
   zend_object zval;   \
-  CassValueType type; \
-  zval* ztype;
+  zval* type;
 
 typedef struct {
   VALUE_FIELDS
@@ -82,18 +81,12 @@ typedef struct {
   CassInet inet;
 } cassandra_inet;
 
-typedef struct cassandra_set_entry_ cassandra_set_entry;
-
 typedef struct {
   VALUE_FIELDS
-  CassValueType value_type;
-  cassandra_set_entry* entries;
+  HashTable values;
   unsigned hashv;
   int dirty;
-  cassandra_set_entry* iter_curr;
-  cassandra_set_entry* iter_temp;
-  int iter_index;
-} cassandra_set;
+} cassandra_collection;
 
 typedef struct cassandra_map_entry_ cassandra_map_entry;
 
@@ -106,11 +99,18 @@ typedef struct {
   cassandra_map_entry* iter_temp;
 } cassandra_map;
 
+typedef struct cassandra_set_entry_ cassandra_set_entry;
+
 typedef struct {
   VALUE_FIELDS
   CassValueType value_type;
-  HashTable values;
-} cassandra_collection;
+  cassandra_set_entry* entries;
+  unsigned hashv;
+  int dirty;
+  cassandra_set_entry* iter_curr;
+  cassandra_set_entry* iter_temp;
+  int iter_index;
+} cassandra_set;
 
 #undef VALUE_FIELDS
 

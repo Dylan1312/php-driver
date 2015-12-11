@@ -1,5 +1,6 @@
 #include "php_cassandra.h"
 #include "util/collections.h"
+#include "util/types.h"
 #include "src/Cassandra/Collection.h"
 
 zend_class_entry *cassandra_collection_ce = NULL;
@@ -9,6 +10,7 @@ php_cassandra_collection_add(cassandra_collection* collection, zval* object TSRM
 {
   if (zend_hash_next_index_insert(&collection->values, (void*) &object, sizeof(zval*), NULL) == SUCCESS) {
     Z_ADDREF_P(object);
+    collection->dirty = 1;
     return 1;
   }
 
@@ -18,8 +20,10 @@ php_cassandra_collection_add(cassandra_collection* collection, zval* object TSRM
 static int
 php_cassandra_collection_del(cassandra_collection* collection, ulong index)
 {
-  if (zend_hash_index_del(&collection->values, index) == SUCCESS)
+  if (zend_hash_index_del(&collection->values, index) == SUCCESS) {
+    collection->dirty = 1;
     return 1;
+  }
 
   return 0;
 }
@@ -46,7 +50,7 @@ php_cassandra_collection_find(cassandra_collection* collection, zval* object, lo
   ulong       idx;
   cassandra_type_collection* type;
 
-  type = (cassandra_type_collection*) zend_object_store_get_object(collection->ztype TSRMLS_CC);
+  type = (cassandra_type_collection*) zend_object_store_get_object(collection->type TSRMLS_CC);
 
   if (!php_cassandra_validate_object(object, type->element_type, NULL TSRMLS_CC))
     return 0;
@@ -94,26 +98,26 @@ php_cassandra_collection_populate(cassandra_collection* collection, zval* array)
 /* {{{ Cassandra\Collection::__construct(string) */
 PHP_METHOD(Collection, __construct)
 {
-  char *type;
-  int type_len;
   cassandra_collection* collection;
+  zval* element_type;
 
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &type, &type_len) == FAILURE) {
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O",
+                            &element_type, cassandra_type_ce) == FAILURE) {
     return;
   }
 
   collection = (cassandra_collection*) zend_object_store_get_object(getThis() TSRMLS_CC);
-
-  php_cassandra_value_type(type, &collection->type TSRMLS_CC);
+  collection->type = php_cassandra_type_collection(element_type TSRMLS_CC);
+  Z_ADDREF_P(element_type);
 }
 /* }}} */
 
 /* {{{ Cassandra\Collection::type() */
 PHP_METHOD(Collection, type)
 {
-  cassandra_collection* collection = (cassandra_collection*) zend_object_store_get_object(getThis() TSRMLS_CC);
-
-  RETURN_STRING(php_cassandra_type_name(collection->type), 1);
+  cassandra_collection* self = (cassandra_collection*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  cassandra_type_collection* type = (cassandra_type_collection*) zend_object_store_get_object(self->type TSRMLS_CC);
+  RETURN_ZVAL(type->element_type, 1, 0);
 }
 /* }}} */
 
@@ -135,7 +139,7 @@ PHP_METHOD(Collection, add)
   int argc, i;
   cassandra_type_collection* type;
 
-  type = (cassandra_type_collection*) zend_object_store_get_object(collection->ztype TSRMLS_CC);
+  type = (cassandra_type_collection*) zend_object_store_get_object(collection->type TSRMLS_CC);
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "+", &args, &argc) == FAILURE)
     return;
@@ -340,19 +344,10 @@ int zend_compare_symbol_tables_i(HashTable *ht1, HashTable *ht2 TSRMLS_DC);
 static int
 php_cassandra_collection_compare(zval *obj1, zval *obj2 TSRMLS_DC)
 {
-  cassandra_collection* collection1 = NULL;
-  cassandra_collection* collection2 = NULL;
-
   if (Z_OBJCE_P(obj1) != Z_OBJCE_P(obj2))
     return 1; /* different classes */
 
-  collection1 = (cassandra_collection*) zend_object_store_get_object(obj1 TSRMLS_CC);
-  collection2 = (cassandra_collection*) zend_object_store_get_object(obj2 TSRMLS_CC);
-
-  if (collection1->type != collection2->type)
-    return 1;
-
-  return zend_compare_symbol_tables_i(&collection1->values, &collection2->values TSRMLS_CC);
+  return php_cassandra_value_compare(obj1, obj2 TSRMLS_CC);
 }
 
 static void
@@ -375,7 +370,9 @@ php_cassandra_collection_new(zend_class_entry* class_type TSRMLS_DC)
   collection = (cassandra_collection*) emalloc(sizeof(cassandra_collection));
   memset(collection, 0, sizeof(cassandra_collection));
 
+  collection->dirty = 1;
   zend_hash_init(&collection->values, 0, NULL, ZVAL_PTR_DTOR, 0);
+
   zend_object_std_init(&collection->zval, class_type TSRMLS_CC);
   object_properties_init(&collection->zval, class_type);
 

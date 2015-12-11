@@ -55,44 +55,44 @@ php_cassandara_type_from_data_type(const CassDataType* data_type TSRMLS_DC) {
 #endif
 
 static inline int
-collection_equals(cassandra_type_collection* type1, cassandra_type_collection* type2 TSRMLS_DC) {
-  return php_cassandra_type_equals((cassandra_type*) zend_object_store_get_object(type1->element_type TSRMLS_CC),
+collection_compare(cassandra_type_collection* type1, cassandra_type_collection* type2 TSRMLS_DC) {
+  return php_cassandra_type_compare((cassandra_type*) zend_object_store_get_object(type1->element_type TSRMLS_CC),
                                    (cassandra_type*) zend_object_store_get_object(type2->element_type TSRMLS_CC) TSRMLS_CC);
 }
 
 static inline int
-map_equals(cassandra_type_map* type1, cassandra_type_map* type2 TSRMLS_DC) {
-  return php_cassandra_type_equals((cassandra_type*) zend_object_store_get_object(type1->key_type TSRMLS_CC),
+map_compare(cassandra_type_map* type1, cassandra_type_map* type2 TSRMLS_DC) {
+  return php_cassandra_type_compare((cassandra_type*) zend_object_store_get_object(type1->key_type TSRMLS_CC),
                                    (cassandra_type*) zend_object_store_get_object(type2->key_type TSRMLS_CC) TSRMLS_CC) &&
-      php_cassandra_type_equals((cassandra_type*) zend_object_store_get_object(type1->value_type TSRMLS_CC),
+      php_cassandra_type_compare((cassandra_type*) zend_object_store_get_object(type1->value_type TSRMLS_CC),
                                 (cassandra_type*) zend_object_store_get_object(type2->value_type TSRMLS_CC) TSRMLS_CC);
 }
 
 static inline int
-set_equals(cassandra_type_set* type1, cassandra_type_set* type2 TSRMLS_DC) {
-  return php_cassandra_type_equals((cassandra_type*) zend_object_store_get_object(type1->element_type TSRMLS_CC),
+set_compare(cassandra_type_set* type1, cassandra_type_set* type2 TSRMLS_DC) {
+  return php_cassandra_type_compare((cassandra_type*) zend_object_store_get_object(type1->element_type TSRMLS_CC),
                                    (cassandra_type*) zend_object_store_get_object(type2->element_type TSRMLS_CC) TSRMLS_CC);
 }
 
 int
-php_cassandra_type_equals(cassandra_type* type1, cassandra_type* type2 TSRMLS_DC) {
+php_cassandra_type_compare(cassandra_type* type1, cassandra_type* type2 TSRMLS_DC) {
   if (type1->type != type2->type) {
-    return 0;
+    return type1->type < type2->type ? -1 : 1;
   } else {
     switch (type1->type) {
     case CASS_VALUE_TYPE_LIST:
-      return map_equals((cassandra_type_map*)type1, (cassandra_type_map*)type2 TSRMLS_CC);
+      return map_compare((cassandra_type_map*)type1, (cassandra_type_map*)type2 TSRMLS_CC);
 
     case CASS_VALUE_TYPE_MAP:
-      return set_equals((cassandra_type_set*)type1, (cassandra_type_set*)type2 TSRMLS_CC);
+      return set_compare((cassandra_type_set*)type1, (cassandra_type_set*)type2 TSRMLS_CC);
 
     case CASS_VALUE_TYPE_SET:
-      return collection_equals((cassandra_type_collection*)type1, (cassandra_type_collection*)type2 TSRMLS_CC);
+      return collection_compare((cassandra_type_collection*)type1, (cassandra_type_collection*)type2 TSRMLS_CC);
 
     default:
       break;
     }
-    return 1;
+    return 0;
   }
 }
 

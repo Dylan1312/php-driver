@@ -1,4 +1,5 @@
 #include "php_cassandra.h"
+#include "util/types.h"
 #include "util/uuid_gen.h"
 
 zend_class_entry *cassandra_uuid_ce = NULL;
@@ -161,17 +162,17 @@ static zend_object_value
 php_cassandra_uuid_new(zend_class_entry* class_type TSRMLS_DC)
 {
   zend_object_value retval;
-  cassandra_uuid *uuid;
+  cassandra_uuid* self;
 
-  uuid = (cassandra_uuid*) emalloc(sizeof(cassandra_uuid));
-  memset(uuid, 0, sizeof(cassandra_uuid));
+  self = (cassandra_uuid*) emalloc(sizeof(cassandra_uuid));
+  memset(self, 0, sizeof(cassandra_uuid));
 
-  uuid->type = CASS_VALUE_TYPE_UUID;
+  self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_UUID TSRMLS_CC);
 
-  zend_object_std_init(&uuid->zval, class_type TSRMLS_CC);
-  object_properties_init(&uuid->zval, class_type);
+  zend_object_std_init(&self->zval, class_type TSRMLS_CC);
+  object_properties_init(&self->zval, class_type);
 
-  retval.handle   = zend_objects_store_put(uuid, (zend_objects_store_dtor_t) zend_objects_destroy_object, php_cassandra_uuid_free, NULL TSRMLS_CC);
+  retval.handle   = zend_objects_store_put(self, (zend_objects_store_dtor_t) zend_objects_destroy_object, php_cassandra_uuid_free, NULL TSRMLS_CC);
   retval.handlers = &cassandra_uuid_handlers;
 
   return retval;

@@ -1,5 +1,6 @@
 #include "php_cassandra.h"
 #include "util/math.h"
+#include "util/types.h"
 #include <gmp.h>
 #include <float.h>
 #include <math.h>
@@ -586,7 +587,7 @@ php_cassandra_decimal_new(zend_class_entry* class_type TSRMLS_DC)
   self = (cassandra_decimal*) emalloc(sizeof(cassandra_decimal));
   memset(self, 0, sizeof(cassandra_decimal));
 
-  self->type = CASS_VALUE_TYPE_DECIMAL;
+  self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_DECIMAL TSRMLS_CC);
   self->scale = 0;
 
   mpz_init(self->value);

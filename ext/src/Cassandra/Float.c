@@ -1,5 +1,6 @@
 #include "php_cassandra.h"
 #include "util/math.h"
+#include "util/types.h"
 #include <float.h>
 
 zend_class_entry* cassandra_float_ce = NULL;
@@ -434,7 +435,7 @@ php_cassandra_float_new(zend_class_entry* class_type TSRMLS_DC)
   self = (cassandra_float*) emalloc(sizeof(cassandra_float));
   memset(self, 0, sizeof(cassandra_float));
 
-  self->type = CASS_VALUE_TYPE_FLOAT;
+  self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_FLOAT TSRMLS_CC);
 
   zend_object_std_init(&self->zval, class_type TSRMLS_CC);
   object_properties_init(&self->zval, class_type);

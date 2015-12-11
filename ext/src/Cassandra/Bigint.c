@@ -1,5 +1,6 @@
 #include "php_cassandra.h"
 #include "util/math.h"
+#include "util/types.h"
 
 #if !defined(HAVE_STDINT_H) && !defined(_MSC_STDINT_H_)
 #  define INT64_MAX 9223372036854775807LL
@@ -475,7 +476,7 @@ php_cassandra_bigint_new(zend_class_entry* class_type TSRMLS_DC)
   self = (cassandra_bigint*) emalloc(sizeof(cassandra_bigint));
   memset(self, 0, sizeof(cassandra_bigint));
 
-  self->type = CASS_VALUE_TYPE_BIGINT;
+  self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_BIGINT TSRMLS_CC);
 
   zend_object_std_init(&self->zval, class_type TSRMLS_CC);
   object_properties_init(&self->zval, class_type);
