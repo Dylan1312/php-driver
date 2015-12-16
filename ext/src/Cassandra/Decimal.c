@@ -256,6 +256,14 @@ PHP_METHOD(Decimal, __toString)
 }
 /* }}} */
 
+/* {{{ Cassandra\Decimal::type() */
+PHP_METHOD(Decimal, type)
+{
+  cassandra_decimal* self = (cassandra_decimal*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  RETURN_ZVAL(self->type, 1, 0);
+}
+/* }}} */
+
 /* {{{ Cassandra\Decimal::value() */
 PHP_METHOD(Decimal, value)
 {
@@ -573,6 +581,8 @@ php_cassandra_decimal_free(void *object TSRMLS_DC)
   cassandra_decimal* self = (cassandra_decimal*) object;
 
   mpz_clear(self->value);
+
+  zval_ptr_dtor(&self->type);
   zend_object_std_dtor(&self->zval TSRMLS_CC);
 
   efree(self);

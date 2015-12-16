@@ -66,7 +66,7 @@ PHP_METHOD(TypeCollection, create)
 
   if (argc > 0) {
     for (i = 0; i < argc; i++) {
-      if (!php_cassandra_validate_object(*args[i], self->element_type, NULL TSRMLS_CC)) {
+      if (!php_cassandra_validate_object(*args[i], self->value_type TSRMLS_CC)) {
         efree(args);
         return;
       }

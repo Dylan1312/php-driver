@@ -36,22 +36,30 @@ PHP_METHOD(Blob, __construct)
 /* {{{ Cassandra\Blob::__toString() */
 PHP_METHOD(Blob, __toString)
 {
-  cassandra_blob* blob = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  cassandra_blob* self = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
   char* hex;
   int hex_len;
-  php_cassandra_bytes_to_hex((const char *) blob->data, blob->size, &hex, &hex_len);
+  php_cassandra_bytes_to_hex((const char *) self->data, self->size, &hex, &hex_len);
 
   RETURN_STRINGL(hex, hex_len, 0);
+}
+/* }}} */
+
+/* {{{ Cassandra\Blob::type() */
+PHP_METHOD(Blob, type)
+{
+  cassandra_blob* self = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  RETURN_ZVAL(self->type, 1, 0);
 }
 /* }}} */
 
 /* {{{ Cassandra\Blob::bytes() */
 PHP_METHOD(Blob, bytes)
 {
-  cassandra_blob* blob = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  cassandra_blob* self = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
   char* hex;
   int hex_len;
-  php_cassandra_bytes_to_hex((const char *) blob->data, blob->size, &hex, &hex_len);
+  php_cassandra_bytes_to_hex((const char *) self->data, self->size, &hex, &hex_len);
 
   RETURN_STRINGL(hex, hex_len, 0);
 }
@@ -60,12 +68,12 @@ PHP_METHOD(Blob, bytes)
 /* {{{ Cassandra\Blob::toBinaryString() */
 PHP_METHOD(Blob, toBinaryString)
 {
-  cassandra_blob* blob = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
-  char* bytes = (char *) emalloc(sizeof(char) * (blob->size + 1));
-  memcpy(bytes, blob->data, blob->size);
-  bytes[blob->size] = '\0';
+  cassandra_blob* self = (cassandra_blob*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  char* bytes = (char *) emalloc(sizeof(char) * (self->size + 1));
+  memcpy(bytes, self->data, self->size);
+  bytes[self->size] = '\0';
 
-  RETURN_STRINGL(bytes, blob->size, 0);
+  RETURN_STRINGL(bytes, self->size, 0);
 }
 /* }}} */
 
@@ -97,13 +105,13 @@ php_cassandra_blob_gc(zval *object, zval ***table, int *n TSRMLS_DC)
 static HashTable*
 php_cassandra_blob_properties(zval *object TSRMLS_DC)
 {
-  cassandra_blob* blob  = (cassandra_blob*) zend_object_store_get_object(object TSRMLS_CC);
+  cassandra_blob* self = (cassandra_blob*) zend_object_store_get_object(object TSRMLS_CC);
   HashTable*      props = zend_std_get_properties(object TSRMLS_CC);
 
   zval* bytes;
   char* hex;
   int hex_len;
-  php_cassandra_bytes_to_hex((const char *) blob->data, blob->size, &hex, &hex_len);
+  php_cassandra_bytes_to_hex((const char *) self->data, self->size, &hex, &hex_len);
 
   MAKE_STD_ZVAL(bytes);
   ZVAL_STRINGL(bytes, hex, hex_len, 0);
@@ -137,12 +145,14 @@ php_cassandra_blob_compare(zval *obj1, zval *obj2 TSRMLS_DC)
 static void
 php_cassandra_blob_free(void *object TSRMLS_DC)
 {
-  cassandra_blob* blob = (cassandra_blob*) object;
+  cassandra_blob* self = (cassandra_blob*) object;
 
-  zend_object_std_dtor(&blob->zval TSRMLS_CC);
+  if (self->data) efree(self->data);
 
-  efree(blob->data);
-  efree(blob);
+  zval_ptr_dtor(&self->type);
+  zend_object_std_dtor(&self->zval TSRMLS_CC);
+
+  efree(self);
 }
 
 static zend_object_value

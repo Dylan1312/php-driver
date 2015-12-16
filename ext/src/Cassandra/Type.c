@@ -19,30 +19,30 @@ PHP_CASSANDRA_SCALAR_TYPES_MAP(XX_SCALAR_METHOD)
 PHP_METHOD(Type, collection)
 {
   zval* ztype;
-  zval* element_type;
+  zval* value_type;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O",
-                            &element_type, cassandra_type_ce) == FAILURE) {
+                            &value_type, cassandra_type_ce) == FAILURE) {
     return;
   }
 
-  ztype = php_cassandra_type_collection(element_type TSRMLS_CC);
-  Z_ADDREF_P(element_type);
+  ztype = php_cassandra_type_collection(value_type TSRMLS_CC);
+  Z_ADDREF_P(value_type);
   RETURN_ZVAL(ztype, 0, 1);
 }
 
 PHP_METHOD(Type, set)
 {
   zval* ztype;
-  zval* element_type;
+  zval* value_type;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O",
-                            &element_type, cassandra_type_ce) == FAILURE) {
+                            &value_type, cassandra_type_ce) == FAILURE) {
     return;
   }
 
-  ztype = php_cassandra_type_set(element_type TSRMLS_CC);
-  Z_ADDREF_P(element_type);
+  ztype = php_cassandra_type_set(value_type TSRMLS_CC);
+  Z_ADDREF_P(value_type);
   RETURN_ZVAL(ztype, 0, 1);
 }
 

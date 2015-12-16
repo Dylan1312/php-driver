@@ -100,6 +100,14 @@ PHP_METHOD(Varint, __toString)
 }
 /* }}} */
 
+/* {{{ Cassandra\Varint::type() */
+PHP_METHOD(Varint, type)
+{
+  cassandra_varint* self = (cassandra_varint*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  RETURN_ZVAL(self->type, 1, 0);
+}
+/* }}} */
+
 /* {{{ Cassandra\Varint::value() */
 PHP_METHOD(Varint, value)
 {
@@ -429,6 +437,8 @@ php_cassandra_varint_free(void *object TSRMLS_DC)
   cassandra_varint* self = (cassandra_varint*) object;
 
   mpz_clear(self->value);
+
+  zval_ptr_dtor(&self->type);
   zend_object_std_dtor(&self->zval TSRMLS_CC);
 
   efree(self);

@@ -36,20 +36,28 @@ PHP_METHOD(Inet, __construct)
 /* {{{ Cassandra\Inet::__toString() */
 PHP_METHOD(Inet, __toString)
 {
-  cassandra_inet* inet = (cassandra_inet*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  cassandra_inet* self = (cassandra_inet*) zend_object_store_get_object(getThis() TSRMLS_CC);
   char* string;
-  php_cassandra_format_address(inet->inet, &string);
+  php_cassandra_format_address(self->inet, &string);
 
   RETURN_STRING(string, 0);
+}
+/* }}} */
+
+/* {{{ Cassandra\Inet::type() */
+PHP_METHOD(Inet, type)
+{
+  cassandra_inet* self = (cassandra_inet*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  RETURN_ZVAL(self->type, 1, 0);
 }
 /* }}} */
 
 /* {{{ Cassandra\Inet::address() */
 PHP_METHOD(Inet, address)
 {
-  cassandra_inet* inet = (cassandra_inet*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  cassandra_inet* self = (cassandra_inet*) zend_object_store_get_object(getThis() TSRMLS_CC);
   char* string;
-  php_cassandra_format_address(inet->inet, &string);
+  php_cassandra_format_address(self->inet, &string);
 
   RETURN_STRING(string, 0);
 }
@@ -82,12 +90,12 @@ php_cassandra_inet_gc(zval *object, zval ***table, int *n TSRMLS_DC)
 static HashTable*
 php_cassandra_inet_properties(zval *object TSRMLS_DC)
 {
-  cassandra_inet* inet  = (cassandra_inet*) zend_object_store_get_object(object TSRMLS_CC);
+  cassandra_inet* self  = (cassandra_inet*) zend_object_store_get_object(object TSRMLS_CC);
   HashTable*      props = zend_std_get_properties(object TSRMLS_CC);
 
   zval* value;
   char* string;
-  php_cassandra_format_address(inet->inet, &string);
+  php_cassandra_format_address(self->inet, &string);
 
   MAKE_STD_ZVAL(value);
   ZVAL_STRING(value, string, 0);
@@ -120,11 +128,12 @@ php_cassandra_inet_compare(zval *obj1, zval *obj2 TSRMLS_DC)
 static void
 php_cassandra_inet_free(void *object TSRMLS_DC)
 {
-  cassandra_inet* inet = (cassandra_inet*) object;
+  cassandra_inet* self = (cassandra_inet*) object;
 
-  zend_object_std_dtor(&inet->zval TSRMLS_CC);
+  zval_ptr_dtor(&self->type);
+  zend_object_std_dtor(&self->zval TSRMLS_CC);
 
-  efree(inet);
+  efree(self);
 }
 
 static zend_object_value

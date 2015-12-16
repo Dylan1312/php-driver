@@ -2,13 +2,11 @@
 
 zend_class_entry* cassandra_value_ce = NULL;
 
-#if 0
 ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, ZEND_RETURN_VALUE, 0)
 ZEND_END_ARG_INFO()
-#endif
 
 static zend_function_entry cassandra_value_methods[] = {
-/*  PHP_ABSTRACT_ME(Value, type, arginfo_none) */
+  PHP_ABSTRACT_ME(Value, type, arginfo_none)
   PHP_FE_END
 };
 

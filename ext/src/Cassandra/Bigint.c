@@ -93,25 +93,26 @@ PHP_METHOD(Bigint, __construct)
 /* {{{ Cassandra\Bigint::__toString() */
 PHP_METHOD(Bigint, __toString)
 {
-  cassandra_bigint* self =
-      (cassandra_bigint*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  cassandra_bigint* self = (cassandra_bigint*) zend_object_store_get_object(getThis() TSRMLS_CC);
 
   to_string(return_value, self TSRMLS_CC);
+}
+/* }}} */
+
+/* {{{ Cassandra\Bigint::type() */
+PHP_METHOD(Bigint, type)
+{
+  cassandra_bigint* self = (cassandra_bigint*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  RETURN_ZVAL(self->type, 1, 0);
 }
 /* }}} */
 
 /* {{{ Cassandra\Bigint::value() */
 PHP_METHOD(Bigint, value)
 {
-  char* string;
-  cassandra_bigint* self =
-      (cassandra_bigint*) zend_object_store_get_object(getThis() TSRMLS_CC);
-#ifdef WIN32
-  spprintf(&string, 0, "%I64d", (long long int) self->value);
-#else
-  spprintf(&string, 0, "%lld", (long long int) self->value);
-#endif
-  RETURN_STRING(string, 0);
+  cassandra_bigint* self = (cassandra_bigint*) zend_object_store_get_object(getThis() TSRMLS_CC);
+
+  to_string(return_value, self TSRMLS_CC);
 }
 /* }}} */
 
@@ -462,6 +463,7 @@ php_cassandra_bigint_free(void *object TSRMLS_DC)
 {
   cassandra_bigint* self = (cassandra_bigint*) object;
 
+  zval_ptr_dtor(&self->type);
   zend_object_std_dtor(&self->zval TSRMLS_CC);
 
   efree(self);

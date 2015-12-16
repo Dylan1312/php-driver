@@ -31,10 +31,10 @@ void php_cassandra_type_string(cassandra_type* type, smart_str* smart TSRMLS_DC)
 zval* php_cassandra_type_scalar(CassValueType type TSRMLS_DC);
 const char* php_cassandra_scalar_type_name(CassValueType type TSRMLS_DC);
 
-zval* php_cassandra_type_set(zval* element_type TSRMLS_DC);
+zval* php_cassandra_type_set(zval* value_type TSRMLS_DC);
 zval* php_cassandra_type_set_from_value_type(CassValueType type TSRMLS_DC);
 
-zval* php_cassandra_type_collection(zval* element_type TSRMLS_DC);
+zval* php_cassandra_type_collection(zval* value_type TSRMLS_DC);
 zval* php_cassandra_type_collection_from_value_type(CassValueType type TSRMLS_DC);
 
 zval* php_cassandra_type_map(zval* key_type,

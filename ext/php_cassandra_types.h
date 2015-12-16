@@ -51,18 +51,13 @@ typedef struct {
 
 typedef struct {
   VALUE_FIELDS
-  cass_int64_t counter;
-} cassandra_counter;
-
-typedef struct {
-  VALUE_FIELDS
   cass_int64_t timestamp;
 } cassandra_timestamp;
 
 typedef struct {
   VALUE_FIELDS
   char* data;
-  size_t size;
+  size_t len;
 } cassandra_string;
 
 typedef struct {
@@ -348,12 +343,12 @@ typedef struct {
 
 typedef struct {
   TYPE_FIELDS
-  zval* element_type;
+  zval* value_type;
 } cassandra_type_collection;
 
 typedef struct {
   TYPE_FIELDS
-  zval* element_type;
+  zval* value_type;
 } cassandra_type_set;
 
 typedef struct {
