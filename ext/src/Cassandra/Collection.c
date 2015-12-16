@@ -146,12 +146,11 @@ PHP_METHOD(Collection, add)
   int argc, i;
   cassandra_type_collection* type;
 
-  type = (cassandra_type_collection*) zend_object_store_get_object(self->type TSRMLS_CC);
-
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "+", &args, &argc) == FAILURE)
     return;
 
   self = (cassandra_collection*) zend_object_store_get_object(getThis() TSRMLS_CC);
+  type = (cassandra_type_collection*) zend_object_store_get_object(self->type TSRMLS_CC);
 
   for (i = 0; i < argc; i++) {
     if (Z_TYPE_P(*args[i]) == IS_NULL) {
@@ -301,6 +300,7 @@ ZEND_END_ARG_INFO()
 
 static zend_function_entry cassandra_collection_methods[] = {
   PHP_ME(Collection, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
+  PHP_ME(Collection, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Collection, valueType, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Collection, values, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Collection, add, arginfo_value, ZEND_ACC_PUBLIC)
@@ -399,6 +399,7 @@ void cassandra_define_Collection(TSRMLS_D)
 
   INIT_CLASS_ENTRY(ce, "Cassandra\\Collection", cassandra_collection_methods);
   cassandra_collection_ce = zend_register_internal_class(&ce TSRMLS_CC);
+  zend_class_implements(cassandra_collection_ce TSRMLS_CC, 1, cassandra_value_ce);
   memcpy(&cassandra_collection_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
   cassandra_collection_handlers.get_properties  = php_cassandra_collection_properties;
 #if PHP_VERSION_ID >= 50400

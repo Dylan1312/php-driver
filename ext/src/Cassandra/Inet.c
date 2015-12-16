@@ -73,6 +73,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry cassandra_inet_methods[] = {
   PHP_ME(Inet, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
   PHP_ME(Inet, __toString, arginfo_none, ZEND_ACC_PUBLIC)
+  PHP_ME(Inet, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Inet, address, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_FE_END
 };
@@ -160,6 +161,7 @@ void cassandra_define_Inet(TSRMLS_D)
 
   INIT_CLASS_ENTRY(ce, "Cassandra\\Inet", cassandra_inet_methods);
   cassandra_inet_ce = zend_register_internal_class(&ce TSRMLS_CC);
+  zend_class_implements(cassandra_inet_ce TSRMLS_CC, 1, cassandra_value_ce);
   memcpy(&cassandra_inet_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
   cassandra_inet_handlers.get_properties  = php_cassandra_inet_properties;
 #if PHP_VERSION_ID >= 50400

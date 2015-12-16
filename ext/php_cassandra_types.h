@@ -11,10 +11,6 @@ typedef struct {
 
 typedef struct {
   VALUE_FIELDS
-} cassandra_numeric;
-
-typedef struct {
-  VALUE_FIELDS
   cass_int64_t value;
 } cassandra_bigint;
 

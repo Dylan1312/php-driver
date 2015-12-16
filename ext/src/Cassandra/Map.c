@@ -392,6 +392,7 @@ ZEND_END_ARG_INFO()
 
 static zend_function_entry cassandra_map_methods[] = {
   PHP_ME(Map, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
+  PHP_ME(Map, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Map, keyType, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Map, keys, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Map, valueType, arginfo_none, ZEND_ACC_PUBLIC)
@@ -505,6 +506,7 @@ void cassandra_define_Map(TSRMLS_D)
 
   INIT_CLASS_ENTRY(ce, "Cassandra\\Map", cassandra_map_methods);
   cassandra_map_ce = zend_register_internal_class(&ce TSRMLS_CC);
+  zend_class_implements(cassandra_map_ce TSRMLS_CC, 1, cassandra_value_ce);
   memcpy(&cassandra_map_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
   cassandra_map_handlers.get_properties  = php_cassandra_map_properties;
 #if PHP_VERSION_ID >= 50400

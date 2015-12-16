@@ -97,6 +97,8 @@ php_cassandra_type_set_free(void *object TSRMLS_DC)
 {
   cassandra_type_set* self = (cassandra_type_set*) object;
 
+  if (self->value_type) zval_ptr_dtor(&self->value_type);
+
   zend_object_std_dtor(&self->zval TSRMLS_CC);
 
   efree(self);
@@ -106,16 +108,18 @@ static zend_object_value
 php_cassandra_type_set_new(zend_class_entry* class_type TSRMLS_DC)
 {
   zend_object_value retval;
-  cassandra_type_set* set;
+  cassandra_type_set* self;
 
-  set = (cassandra_type_set*) ecalloc(1, sizeof(cassandra_type_set));
+  self = (cassandra_type_set*) ecalloc(1, sizeof(cassandra_type_set));
+  memset(self, 0, sizeof(cassandra_type_set));
 
-  zend_object_std_init(&set->zval, class_type TSRMLS_CC);
-  object_properties_init(&set->zval, class_type);
+  self->type = CASS_VALUE_TYPE_SET;
+  self->value_type = NULL;
 
-  set->type = CASS_VALUE_TYPE_UNKNOWN;
+  zend_object_std_init(&self->zval, class_type TSRMLS_CC);
+  object_properties_init(&self->zval, class_type);
 
-  retval.handle   = zend_objects_store_put(set,
+  retval.handle   = zend_objects_store_put(self,
                       (zend_objects_store_dtor_t) zend_objects_destroy_object,
                       php_cassandra_type_set_free, NULL TSRMLS_CC);
   retval.handlers = &cassandra_type_set_handlers;

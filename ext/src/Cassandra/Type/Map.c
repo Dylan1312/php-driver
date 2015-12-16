@@ -115,32 +115,33 @@ static zend_object_handlers cassandra_type_map_handlers;
 static void
 php_cassandra_type_map_free(void *object TSRMLS_DC)
 {
-  cassandra_type_map* map = (cassandra_type_map*) object;
+  cassandra_type_map* self = (cassandra_type_map*) object;
 
-  zend_object_std_dtor(&map->zval TSRMLS_CC);
+  if (self->key_type) zval_ptr_dtor(&self->key_type);
+  if (self->value_type) zval_ptr_dtor(&self->value_type);
 
-  if (map->key_type) zval_ptr_dtor(&map->key_type);
-  if (map->value_type) zval_ptr_dtor(&map->value_type);
+  zend_object_std_dtor(&self->zval TSRMLS_CC);
 
-  efree(map);
+  efree(self);
 }
 
 static zend_object_value
 php_cassandra_type_map_new(zend_class_entry* class_type TSRMLS_DC)
 {
   zend_object_value retval;
-  cassandra_type_map* map;
+  cassandra_type_map* self;
 
-  map = (cassandra_type_map*) ecalloc(1, sizeof(cassandra_type_map));
+  self = (cassandra_type_map*) ecalloc(1, sizeof(cassandra_type_map));
+  memset(self, 0, sizeof(cassandra_type_map));
 
-  map->type = CASS_VALUE_TYPE_MAP;
-  map->key_type = NULL;
-  map->value_type = NULL;
+  self->type = CASS_VALUE_TYPE_MAP;
+  self->key_type = NULL;
+  self->value_type = NULL;
 
-  zend_object_std_init(&map->zval, class_type TSRMLS_CC);
-  object_properties_init(&map->zval, class_type);
+  zend_object_std_init(&self->zval, class_type TSRMLS_CC);
+  object_properties_init(&self->zval, class_type);
 
-  retval.handle   = zend_objects_store_put(map,
+  retval.handle   = zend_objects_store_put(self,
                       (zend_objects_store_dtor_t) zend_objects_destroy_object,
                       php_cassandra_type_map_free, NULL TSRMLS_CC);
   retval.handlers = &cassandra_type_map_handlers;

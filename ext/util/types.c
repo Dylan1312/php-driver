@@ -271,7 +271,6 @@ php_cassandra_type_scalar(CassValueType type TSRMLS_DC)
     if (CASSANDRA_G(TYPE_CODE(name)) == NULL) { \
       CASSANDRA_G(TYPE_CODE(name)) = php_cassandra_type_scalar_new(type TSRMLS_CC); \
     } \
-    Z_ADDREF_P(CASSANDRA_G(TYPE_CODE(name))); \
     return CASSANDRA_G(TYPE_CODE(name)); \
   }
   PHP_CASSANDRA_SCALAR_TYPES_MAP(XX_SCALAR)
@@ -310,7 +309,9 @@ php_cassandra_type_map_from_value_types(CassValueType key_type,
   object_init_ex(ztype, cassandra_type_map_ce);
   map = (cassandra_type_map*) zend_object_store_get_object(ztype TSRMLS_CC);
   map->key_type   = php_cassandra_type_scalar(key_type TSRMLS_CC);
+  Z_ADDREF_P(map->key_type);
   map->value_type = php_cassandra_type_scalar(value_type TSRMLS_CC);
+  Z_ADDREF_P(map->value_type);
 
   return ztype;
 }
@@ -339,6 +340,7 @@ php_cassandra_type_set_from_value_type(CassValueType type TSRMLS_DC)
   object_init_ex(ztype, cassandra_type_set_ce);
   set = (cassandra_type_set*) zend_object_store_get_object(ztype TSRMLS_CC);
   set->value_type = php_cassandra_type_scalar(type TSRMLS_CC);
+  Z_ADDREF_P(set->value_type);
 
   return ztype;
 }
@@ -367,6 +369,7 @@ php_cassandra_type_collection_from_value_type(CassValueType type TSRMLS_DC)
   object_init_ex(ztype, cassandra_type_collection_ce);
   collection = (cassandra_type_collection*) zend_object_store_get_object(ztype TSRMLS_CC);
   collection->value_type = php_cassandra_type_scalar(type TSRMLS_CC);
+  Z_ADDREF_P(collection->value_type);
 
   return ztype;
 }
@@ -770,21 +773,25 @@ php_cassandra_create_type(struct node_s* node TSRMLS_DC)
     return php_cassandra_type_custom(
           php_cassandra_node_dump(node) TSRMLS_CC);
   } else if (type == CASS_VALUE_TYPE_MAP) {
-    zval* primary_type;
-    zval* secondary_type;
-    primary_type = php_cassandra_create_type(node->first_child TSRMLS_CC);
-    if (!primary_type) return NULL;
-    secondary_type = php_cassandra_create_type(node->first_child->next_sibling TSRMLS_CC);
-    if (!secondary_type) return NULL;
-    return  php_cassandra_type_map(primary_type, secondary_type TSRMLS_CC);
+    zval* key_type;
+    zval* value_type;
+    key_type = php_cassandra_create_type(node->first_child TSRMLS_CC);
+    if (!key_type) return NULL;
+    value_type = php_cassandra_create_type(node->first_child->next_sibling TSRMLS_CC);
+    if (!value_type) return NULL;
+    Z_ADDREF_P(key_type);
+    Z_ADDREF_P(value_type);
+    return php_cassandra_type_map(key_type, value_type TSRMLS_CC);
   } else if (type == CASS_VALUE_TYPE_LIST) {
-    zval* primary_type = php_cassandra_create_type(node->first_child TSRMLS_CC);
-    if (!primary_type) return NULL;
-    return php_cassandra_type_collection(primary_type TSRMLS_CC);
+    zval* value_type = php_cassandra_create_type(node->first_child TSRMLS_CC);
+    if (!value_type) return NULL;
+    Z_ADDREF_P(value_type);
+    return php_cassandra_type_collection(value_type TSRMLS_CC);
   } else if (type == CASS_VALUE_TYPE_SET) {
-    zval* primary_type = php_cassandra_create_type(node->first_child TSRMLS_CC);
-    if (!primary_type) return NULL;
-    return php_cassandra_type_set(primary_type TSRMLS_CC);
+    zval* value_type = php_cassandra_create_type(node->first_child TSRMLS_CC);
+    if (!value_type) return NULL;
+    Z_ADDREF_P(value_type);
+    return php_cassandra_type_set(value_type TSRMLS_CC);
   }
 
   return php_cassandra_type_scalar(type TSRMLS_CC);

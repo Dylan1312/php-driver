@@ -485,6 +485,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry cassandra_decimal_methods[] = {
   PHP_ME(Decimal, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
   PHP_ME(Decimal, __toString, arginfo_none, ZEND_ACC_PUBLIC)
+  PHP_ME(Decimal, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Decimal, value, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Decimal, scale, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Decimal, add, arginfo_num, ZEND_ACC_PUBLIC)
@@ -598,6 +599,7 @@ php_cassandra_decimal_new(zend_class_entry* class_type TSRMLS_DC)
   memset(self, 0, sizeof(cassandra_decimal));
 
   self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_DECIMAL TSRMLS_CC);
+  Z_ADDREF_P(self->type);
   self->scale = 0;
 
   mpz_init(self->value);

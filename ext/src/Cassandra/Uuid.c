@@ -91,6 +91,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry cassandra_uuid_methods[] = {
   PHP_ME(Uuid, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
   PHP_ME(Uuid, __toString, arginfo_none, ZEND_ACC_PUBLIC)
+  PHP_ME(Uuid, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Uuid, uuid, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Uuid, version, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_FE_END
@@ -177,6 +178,7 @@ php_cassandra_uuid_new(zend_class_entry* class_type TSRMLS_DC)
   memset(self, 0, sizeof(cassandra_uuid));
 
   self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_UUID TSRMLS_CC);
+  Z_ADDREF_P(self->type);
 
   zend_object_std_init(&self->zval, class_type TSRMLS_CC);
   object_properties_init(&self->zval, class_type);

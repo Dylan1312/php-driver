@@ -601,9 +601,6 @@ php_cassandra_validate_object(zval* object, zval* ztype TSRMLS_DC)
     }
 
     return 1;
-
-    return 1;
-
   default:
     EXPECTING_VALUE("a simple Cassandra value");
 
@@ -729,7 +726,7 @@ php_cassandra_collection_from_set(cassandra_set* set, CassCollection** collectio
   value_type = (cassandra_type*) zend_object_store_get_object(type->value_type TSRMLS_CC);
 
   HASH_ITER(hh, set->entries, curr, temp) {
-    if (php_cassandra_collection_append(collection, curr->value, value_type->type TSRMLS_CC)) {
+    if (!php_cassandra_collection_append(collection, curr->value, value_type->type TSRMLS_CC)) {
       result = 0;
       break;
     }
@@ -796,11 +793,11 @@ php_cassandra_collection_from_map(cassandra_map* map, CassCollection** collectio
   value_type = (cassandra_type*) zend_object_store_get_object(type->value_type TSRMLS_CC);
 
   HASH_ITER(hh, map->entries, curr, temp) {
-    if (php_cassandra_collection_append(collection, curr->key, key_type->type TSRMLS_CC)) {
+    if (!php_cassandra_collection_append(collection, curr->key, key_type->type TSRMLS_CC)) {
       result = 0;
       break;
     }
-    if (php_cassandra_collection_append(collection, curr->value, value_type->type TSRMLS_CC)) {
+    if (!php_cassandra_collection_append(collection, curr->value, value_type->type TSRMLS_CC)) {
       result = 0;
       break;
     }

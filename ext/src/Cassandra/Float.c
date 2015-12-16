@@ -331,6 +331,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry cassandra_float_methods[] = {
   PHP_ME(Float, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
   PHP_ME(Float, __toString, arginfo_none, ZEND_ACC_PUBLIC)
+  PHP_ME(Float, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Float, value, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Float, isInfinite, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Float, isFinite, arginfo_none, ZEND_ACC_PUBLIC)
@@ -443,6 +444,7 @@ php_cassandra_float_new(zend_class_entry* class_type TSRMLS_DC)
   memset(self, 0, sizeof(cassandra_float));
 
   self->type = php_cassandra_type_scalar(CASS_VALUE_TYPE_FLOAT TSRMLS_CC);
+  Z_ADDREF_P(self->type);
 
   zend_object_std_init(&self->zval, class_type TSRMLS_CC);
   object_properties_init(&self->zval, class_type);

@@ -142,8 +142,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_microtime, 0, ZEND_RETURN_VALUE, 0)
   ZEND_ARG_INFO(0, get_as_float)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, ZEND_RETURN_VALUE, 0)
+ZEND_END_ARG_INFO()
+
 static zend_function_entry cassandra_timestamp_methods[] = {
   PHP_ME(Timestamp, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
+  PHP_ME(Timestamp, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Timestamp, time, NULL, ZEND_ACC_PUBLIC)
   PHP_ME(Timestamp, microtime, arginfo_microtime, ZEND_ACC_PUBLIC)
   PHP_ME(Timestamp, toDateTime, NULL, ZEND_ACC_PUBLIC)
@@ -238,6 +242,7 @@ void cassandra_define_Timestamp(TSRMLS_D)
 
   INIT_CLASS_ENTRY(ce, "Cassandra\\Timestamp", cassandra_timestamp_methods);
   cassandra_timestamp_ce = zend_register_internal_class(&ce TSRMLS_CC);
+  zend_class_implements(cassandra_timestamp_ce TSRMLS_CC, 1, cassandra_value_ce);
   memcpy(&cassandra_timestamp_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
   cassandra_timestamp_handlers.get_properties  = php_cassandra_timestamp_properties;
 #if PHP_VERSION_ID >= 50400

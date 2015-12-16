@@ -127,6 +127,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry cassandra_timeuuid_methods[] = {
   PHP_ME(Timeuuid, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
   PHP_ME(Timeuuid, __toString, arginfo_none, ZEND_ACC_PUBLIC)
+  PHP_ME(Timeuuid, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Timeuuid, uuid, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Timeuuid, version, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Timeuuid, time, arginfo_none, ZEND_ACC_PUBLIC)

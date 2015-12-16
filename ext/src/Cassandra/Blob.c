@@ -87,6 +87,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry cassandra_blob_methods[] = {
   PHP_ME(Blob, __construct, arginfo__construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
   PHP_ME(Blob, __toString, arginfo_none, ZEND_ACC_PUBLIC)
+  PHP_ME(Blob, type, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Blob, bytes, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_ME(Blob, toBinaryString, arginfo_none, ZEND_ACC_PUBLIC)
   PHP_FE_END
@@ -179,6 +180,7 @@ void cassandra_define_Blob(TSRMLS_D)
 
   INIT_CLASS_ENTRY(ce, "Cassandra\\Blob", cassandra_blob_methods);
   cassandra_blob_ce = zend_register_internal_class(&ce TSRMLS_CC);
+  zend_class_implements(cassandra_blob_ce TSRMLS_CC, 1, cassandra_value_ce);
   memcpy(&cassandra_blob_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
   cassandra_blob_handlers.get_properties  = php_cassandra_blob_properties;
 #if PHP_VERSION_ID >= 50400
