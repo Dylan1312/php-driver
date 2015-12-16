@@ -15,11 +15,6 @@ typedef struct {
 
 typedef struct {
   VALUE_FIELDS
-  cass_int32_t value;
-} cassandra_int;
-
-typedef struct {
-  VALUE_FIELDS
   cass_int64_t value;
 } cassandra_bigint;
 
@@ -36,29 +31,13 @@ typedef struct {
 
 typedef struct {
   VALUE_FIELDS
-  cass_double_t value;
-} cassandra_double;
-
-typedef struct {
-  VALUE_FIELDS
   mpz_t value;
 } cassandra_varint;
 
 typedef struct {
   VALUE_FIELDS
-  cass_bool_t value;
-} cassandra_boolean;
-
-typedef struct {
-  VALUE_FIELDS
   cass_int64_t timestamp;
 } cassandra_timestamp;
-
-typedef struct {
-  VALUE_FIELDS
-  char* data;
-  size_t len;
-} cassandra_string;
 
 typedef struct {
   VALUE_FIELDS
@@ -376,13 +355,6 @@ extern PHP_CASSANDRA_API zend_class_entry* cassandra_uuid_interface_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_uuid_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_timeuuid_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_varint_ce;
-
-// TODO(mpenick): Create types
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_ascii_ce;
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_boolean_ce;
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_double_ce;
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_int_ce;
-extern PHP_CASSANDRA_API zend_class_entry* cassandra_varchar_ce;
 
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_set_ce;
 extern PHP_CASSANDRA_API zend_class_entry* cassandra_map_ce;

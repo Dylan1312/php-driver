@@ -1,6 +1,0 @@
-#ifndef PHP_CASSANDRA_ASCII_H
-#define PHP_CASSANDRA_ASCII_H
-
-void php_cassandra_ascii_init(INTERNAL_FUNCTION_PARAMETERS);
-
-#endif /* PHP_CASSANDRA_ASCII_H */

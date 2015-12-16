@@ -1,6 +1,0 @@
-#ifndef PHP_CASSANDRA_DOUBLE_H
-#define PHP_CASSANDRA_DOUBLE_H
-
-void php_cassandra_double_init(INTERNAL_FUNCTION_PARAMETERS);
-
-#endif /* PHP_CASSANDRA_DOUBLE_H */
